@@ -1120,7 +1120,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  <h3 style="margin:18px 0 8px">Люди на кухне</h3><p class="note">Норма и размер порции у каждого считаются из профиля: вес, рост, возраст, активность и цель.</p>
  <div class="rlist">${people}</div><button class="btn" data-act="padd" style="width:100%;justify-content:center;margin-top:8px">+ Добавить человека</button>
  ${S.fb?membersView()+kitchensView():''}
- ${isAdmin()?accessView():''}
+ ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
@@ -1129,7 +1129,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
 // ---------- кухни и доступ ----------
 const OWNERS=()=>(window.FB_OWNERS||[]).map(x=>x.toLowerCase());
 const me=()=>String(S.user||'').toLowerCase();
-const isAdmin=()=>!!S.user&&OWNERS().includes(me());
+const isAdmin=()=>!!S.user&&(isSuper()||(S.modList||[]).includes(me())); // модератор или хозяин
 const isSuper=()=>!!S.user&&OWNERS()[0]===me(); // почты добавляет только главный админ (первый в FB_OWNERS)
 const isOwner=isAdmin;
 const isKOwner=()=>!S.fb||!!(S.kdoc&&(S.kdoc.owners||[]).map(x=>String(x).toLowerCase()).includes(me()));
@@ -1147,10 +1147,22 @@ function startKitchens(){
  gUnsubs.push(store.watchQ('sharedProducts',null,null,a=>{S.sprod=a;loadProducts();loadUserRecipes();applyMods();if(S.kid)render()}));
  gUnsubs.push(store.watchQ('book',null,null,a=>{S.book=a;applyMods();if(S.kid)render()}));
  gUnsubs.push(store.watchQ('shared',null,null,a=>{S.shared=a;loadUserRecipes();if(S.kid)render()}));
- if(isAdmin()){
-  gUnsubs.push(store.watchDoc('access/main',d=>{S.access=((d&&d.emails)||[]).slice();if(sheetOpen)refreshSheet()}));
-  gUnsubs.push(store.watchQ('pending',null,null,a=>{S.pending=a.sort((x,y)=>(x.at||0)-(y.at||0));if(sheetOpen)refreshSheet();if(S.kid)renderTop()}))}
+ S.modList=[];adminSubs=false;
+ if(isSuper())startAdminSubs();
+ gUnsubs.push(store.watchDoc('roles/main',d=>{
+  if(!d&&isSuper()){store.setDoc('roles/main',{mods:OWNERS().slice(1)});return}
+  S.modList=((d&&d.mods)||[]).map(x=>String(x).toLowerCase());if(isAdmin())startAdminSubs();
+  if(S.kid){renderTop();render()}if(sheetOpen)refreshSheet()}));
 }
+let adminSubs=false;
+function startAdminSubs(){if(adminSubs)return;adminSubs=true;
+ gUnsubs.push(store.watchDoc('access/main',d=>{S.access=((d&&d.emails)||[]).slice();if(sheetOpen)refreshSheet()}));
+ gUnsubs.push(store.watchQ('pending',null,null,a=>{S.pending=a.sort((x,y)=>(x.at||0)-(y.at||0));if(sheetOpen)refreshSheet();if(S.kid)renderTop()}))}
+function rolesView(){const sup=isSuper();const mods=S.modList||[];
+ const row=(e,r,del)=>`<div class="arow"><span>${esc(e)}</span><span class="note">${r}</span>${del?`<button class="btn sm" data-act="roledel" data-e="${esc(e)}" aria-label="Снять роль с ${esc(e)}">✕</button>`:''}</div>`;
+ return `<h3 style="margin:18px 0 8px">Роли</h3><p class="note">Модератор может всё, что хозяин: править и удалять общие рецепты, добавлять новые, принимать присланное. Не может добавлять почты и менять роли.</p>
+ ${row(OWNERS()[0],'хозяин',false)}${mods.map(e=>row(e,'модератор',sup)).join('')}
+ ${sup?`<div class="addrow"><input id="rolein" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="roleadd">Сделать модератором</button></div>`:''}`}
 function unsubAll(){[...unsubs,...wkUnsubs].forEach(u=>{try{u()}catch(e){}});unsubs=[];wkUnsubs=[]}
 function openKitchen(kid){
  unsubAll();S.kid=kid;LS.set('kid',kid);S.kdoc=(S.kitchens||[]).find(k=>k.id===kid)||S.kdoc;
@@ -1201,9 +1213,9 @@ function memberDel(e){const m=(S.kdoc.members||[]).filter(x=>String(x).toLowerCa
 
 // кто может завести свою кухню (только для админов приложения)
 function accessView(){const list=S.access||[];const sup=isSuper();
- const row=(e,del)=>`<div class="arow"><span>${esc(e)}</span>${del&&sup?`<button class="btn sm" data-act="accdel" data-e="${esc(e)}" aria-label="Убрать ${esc(e)}">✕</button>`:del?'':'<span class="note">админ</span>'}</div>`;
- return `<h3 style="margin:18px 0 8px">Кто может завести свою кухню</h3><p class="note">Видно только вам двоим${sup?'':', менять список может Вова'}. Человек из списка входит через Google и создаёт свою отдельную кухню — ваших данных он не видит.</p>
- ${OWNERS().map(e=>row(e,false)).join('')}${list.map(e=>row(e,true)).join('')}
+ const row=(e,del)=>`<div class="arow"><span>${esc(e)}</span>${del&&sup?`<button class="btn sm" data-act="accdel" data-e="${esc(e)}" aria-label="Убрать ${esc(e)}">✕</button>`:del?'':'<span class="note">хозяин</span>'}</div>`;
+ return `<h3 style="margin:18px 0 8px">Кто может завести свою кухню</h3><p class="note">Видно хозяину и модераторам${sup?'':', менять список может только хозяин'}. Человек из списка входит через Google и создаёт свою отдельную кухню — ваших данных он не видит.</p>
+ ${row(OWNERS()[0],false)}${list.map(e=>row(e,true)).join('')}
  ${sup?'':'<!--'}<div class="addrow"><input id="accin" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="accadd">Добавить</button></div>${sup?'':'-->'}`}
 function saveAccess(list){S.access=list;refreshSheet();return store.setDoc('access/main',{emails:list})}
 
@@ -1528,6 +1540,8 @@ document.addEventListener('click',ev=>{
  else if(a==='crm'){keepCE();CE.items.splice(+t.dataset.i,1);refreshSheet()}
  else if(a==='cback'){CE=null;openSheet(recEditView)}
  else if(a==='csave'){keepCE();if(!CE.n.trim()){$('#cen').focus();toast('Впишите название варианта');return}const g=RE.opts[CE.g];const c={n:CE.n.trim(),items:CE.items};if(CE.c==null)g.c.push(c);else g.c[CE.c]=c;CE=null;openSheet(recEditView)}
+ else if(a==='roleadd'){const v=($('#rolein').value||'').trim().toLowerCase();if(!EMAIL_RE.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}if(v===OWNERS()[0]||(S.modList||[]).includes(v)){toast('Уже с ролью');return}S.modList=[...(S.modList||[]),v];store.setDoc('roles/main',{mods:S.modList});refreshSheet();toast(v+' теперь модератор')}
+ else if(a==='roledel'){const v=t.dataset.e;S.modList=(S.modList||[]).filter(x=>x!==v);store.setDoc('roles/main',{mods:S.modList});refreshSheet();toast('Роль снята: '+v,()=>{S.modList=[...S.modList,v];store.setDoc('roles/main',{mods:S.modList});refreshSheet()})}
  else if(a==='modview'){openSheet(modView)}
  else if(a==='pview'){const p=(S.pending||[]).find(x=>x.id===t.dataset.id);if(p)openSheet(()=>pendingPreview(p))}
  else if(a==='accadd'){const v=($('#accin').value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}
