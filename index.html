@@ -208,6 +208,7 @@ label.chip{display:inline-flex;align-items:center;gap:6px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
 .seg button{min-height:44px;border-radius:11px;font-weight:800;font-size:15px;color:var(--mute)}.seg button[aria-pressed=true]{background:var(--basil,#2f5d4a);color:#fff}
 .chip small{opacity:.6;font-weight:700;margin-left:2px}
+.rwrap{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:stretch}.favb{width:48px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--mute);display:grid;place-items:center;min-height:48px}.favb[aria-pressed=true]{color:#e0a600;border-color:#e0a600}
 .modbtn{position:relative;font-weight:800}.modbtn[hidden]{display:none}.badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--tom,#d9472b);color:#fff;font-size:11px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px}
 .dng{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}.dnl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}.dn h3{margin-bottom:8px}
 .rrow{display:grid;grid-template-columns:1fr 64px 76px auto auto;gap:6px;align-items:center}
@@ -587,8 +588,8 @@ function batchItems(d){
   const acc={};
   const add=(arr,m)=>arr.forEach(([id,g])=>acc[id]=(acc[id]||0)+g*m);
   if(d.man) return acc;
-  if(d.cat==='main') add(full(d),BATCH.H*SUMF('ld'));
-  else if(d.cat==='soup') add(full(d),BATCH.S*SUMF('ld'));
+  if(d.cat==='main') add(full(d),(d.meals||BATCH.H)*SUMF('ld'));
+  else if(d.cat==='soup') add(full(d),(d.meals||BATCH.S)*SUMF('ld'));
   else if(d.cat==='bake') add(d.B,1);
   else add(full(d),1);
   return acc;
@@ -730,6 +731,7 @@ function subscribeAll(){
  unsubs.push(ks.watchDoc('prices/main',d=>{S.prices=JSON.parse(JSON.stringify((d&&d.p)||{}));applyNames();render()}));
  unsubs.push(ks.watchDoc('cookdays/main',d=>{S.cook=JSON.parse(JSON.stringify((d&&d.d)||{}));render()}));
  unsubs.push(ks.watchDoc('pantry/main',d=>{S.pantry=JSON.parse(JSON.stringify((d&&d.h)||{}));render()}));
+ unsubs.push(ks.watchDoc('favs/main',d=>{S.favs=JSON.parse(JSON.stringify((d&&d.ids)||{}));if(S.tab==='recipes')render();if(sheetOpen)refreshSheet()}));
  unsubs.push(ks.watchQ('products',null,null,a=>{S.prods=a;loadProducts();loadUserRecipes();applyMods();render()}));
  unsubs.push(ks.watchQ('mods',null,null,a=>{S.mods=Object.fromEntries(a.map(m=>[m.id,m]));applyMods();render()}));
  unsubs.push(ks.watchQ('weights',null,null,a=>{S.weights=a;if(sheetOpen)refreshSheet()}));
@@ -792,7 +794,11 @@ function progCard(who){
 }
 const SLOT=[['m0','Блюдо 1'],['m1','Блюдо 2'],['m2','Блюдо 3'],['m3','Блюдо 4'],['soup','Суп'],['bake','Выпечка']];
 const slotDish=(p,s)=>D[s==='soup'?p.soup:s==='bake'?p.bake:p.m[+s[1]]];
-function srcTag(d){if(d.src==='user')return '<span class="tag user">свой рецепт</span>';if(d.src==='shared')return '<span class="tag user">из общей книги</span>';if(d.mod)return '<span class="tag user">изменено у нас</span>';if(d.cook&&ppl().some(p=>p.id===d.cook)){const c=P(d.cook);return `<span class="tag" style="background:${c.color};color:${onColor(c.color)}">готовит ${esc(c.name)}</span>`}return d.cat==='soup'?'<span class="tag soup">суп · из ТикТока</span>':d.src==='tt'?'<span class="tag tt">из ТикТока</span>':'<span class="tag">наше</span>'}
+function defTag(d){if(d.src==='user')return 'свой рецепт';if(d.src==='shared')return 'наши';if(d.cook&&ppl().some(p=>p.id===d.cook))return 'готовит '+P(d.cook).name;if(d.src==='tt')return d.cat==='soup'?'суп · из ТикТока':'из ТикТока';return 'наши'}
+function srcTag(d){const t=typeof d.tag==='string'?d.tag:defTag(d);let h='';
+ if(t){if(typeof d.tag!=='string'&&d.cook&&ppl().some(p=>p.id===d.cook)){const c=P(d.cook);h=`<span class="tag" style="background:${c.color};color:${onColor(c.color)}">${esc(t)}</span>`}
+  else h=`<span class="tag ${d.src==='user'?'user':d.src==='tt'?(d.cat==='soup'?'soup':'tt'):''}">${esc(t)}</span>`}
+ return h+(d.mod?'<span class="tag user">изменено у нас</span>':'')}
 function kbLine(d){
  if(d.cat==='bake'){const k=portion(d);return `1 шт ≈ <b>${R(k[0])}</b> ккал · ${d.pcs} шт в партии`}
  const line=ppl().map(p=>`${esc(p.name)} <b>${R(portion(d,p.id)[0])}</b>`).join(' · ')+' ккал';
@@ -912,9 +918,9 @@ function entryRow(e){return `<div class="entry"><div class="t">${esc(e.label)}<s
 function qb(act,attrs,title,sub){return `<button class="qb" data-act="${act}" ${attrs}><b>${esc(title)}</b><span>${sub}</span></button>`}
 
 const SNACK_IDS=Object.keys(EXTRA).filter(k=>!/_c$|x_bread|x_rye|x_oatmeal/.test(k));
-function qOpts(){const sel=S.qp||'x_halva';const o=(ids)=>ids.sort((a,b)=>ALL[a].n.localeCompare(ALL[b].n,'ru')).map(id=>`<option value="${id}"${id===sel?' selected':''}>${esc(ALL[id].n)}</option>`).join('');
- return `<optgroup label="Перекусы и сладкое">${o([...SNACK_IDS])}</optgroup><optgroup label="Остальное">${o(Object.keys(ALL).filter(k=>!SNACK_IDS.includes(k)&&!ALL[k].pantry))}</optgroup>`}
-function qUnits(id){const it=ALL[id];return it.u.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${it.ml?'мл':'г'})</option>`).join('')+`<option value="g">${it.ml?'мл':'граммов'}</option>`}
+function qOpts(){const sel=S.qp||'';const o=(ids)=>ids.sort((a,b)=>ALL[a].n.localeCompare(ALL[b].n,'ru')).map(id=>`<option value="${id}"${id===sel?' selected':''}>${esc(ALL[id].n)}</option>`).join('');
+ return `<option value="" disabled${sel?'':' selected'}>— выберите продукт —</option><optgroup label="Перекусы и сладкое">${o([...SNACK_IDS])}</optgroup><optgroup label="Остальное">${o(Object.keys(ALL).filter(k=>!SNACK_IDS.includes(k)&&!ALL[k].pantry))}</optgroup>`}
+function qUnits(id){const it=ALL[id];if(!it)return '<option value="g">—</option>';return it.u.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${it.ml?'мл':'г'})</option>`).join('')+`<option value="g">${it.ml?'мл':'граммов'}</option>`}
 function amountOf(id,n,u){const it=ALL[id];if(u==='g')return {g:n,txt:String(n).replace('.',',')+(it.ml?' мл':' г')};const un=it.u[+u];const g=n*un[1];return {g,txt:String(n).replace('.',',')+' '+(Number.isInteger(n)?plural(n,un[0]):un[0][1])}}
 function dayNorm(who,tot){const T=P(who).tg;const it=(l,i,u)=>`<div><div class="dnl"><span>${l}</span><b>${fmt(tot[i])} / ${fmt(T[i])}${u}</b></div><div class="bar${tot[i]>T[i]*1.05&&i===0?' over':''}"><i style="width:${pct(tot[i],T[i])}%"></i></div></div>`;
  const left=T[0]-tot[0];
@@ -939,7 +945,7 @@ function renderDiary(){
  <section><div class="sh"><h2>Добавить</h2></div>
  <div class="chips" style="margin-bottom:10px">${mults}</div>
  <div class="card mebox" style="margin-bottom:12px"><h3 style="margin-bottom:4px">Съел что-то ещё?</h3><p class="note" style="margin:0 0 8px">Халва, печенье, орехи, кофе — выбери и сколько примерно.</p>
- <div class="qline"><select id="qp" aria-label="Что съел">${qOpts()}</select><input id="qn" type="number" inputmode="decimal" min="0" step="0.5" value="1" aria-label="Сколько"><select id="qu" aria-label="Чего">${qUnits(S.qp||'x_halva')}</select></div>
+ <div class="qline"><select id="qp" aria-label="Что съел">${qOpts()}</select><input id="qn" type="number" inputmode="decimal" min="0" step="0.5" value="1" aria-label="Сколько"><select id="qu" aria-label="Чего">${qUnits(S.qp||'')}</select></div>
  <div class="row2"><button class="btn pri" data-act="qadd" style="justify-content:center">Добавить</button><button class="btn" data-act="newprod" data-back="q" style="justify-content:center">+ Свой продукт</button></div></div>
  <div class="acts" style="margin-bottom:12px"><button class="btn tom" data-act="builder">Своё блюдо из продуктов</button><button class="btn" data-act="manual">Вписать вручную</button></div>
  ${planned?`<h3 style="margin:6px 2px 8px">По плану на ${DOW[S.day]}</h3><div class="quick" style="margin-bottom:14px">${planned}</div>`:''}
@@ -962,7 +968,7 @@ function loadUserRecipes(){
   const items=Array.isArray(r.items)?r.items.map(x=>Array.isArray(x)?{i:x[0],g:x[1]}:x).filter(x=>x&&ALL[x.i]&&+x.g>0).map(x=>[x.i,+x.g]):[];
   const man=Array.isArray(r.man)&&+r.man[0]>0?[0,1,2,3].map(i=>+r.man[i]||0):null;
   const d={id:pre+r.id,uid:r.id,src,cat,n:String(r.n||'Своё блюдо').slice(0,80),time:String(r.time||'').slice(0,30)||'—',steps:Array.isArray(r.steps)?r.steps.map(x=>String(x).slice(0,500)).slice(0,30):[],items,portions,man:items.length?null:man};
-  d.opts=parseOpts(r.opts);const per=items.map(([i,g])=>[i,g/portions]);
+  d.tag=typeof r.tag==='string'?r.tag.slice(0,30):undefined;d.opts=parseOpts(r.opts);const per=r.per?items:items.map(([i,g])=>[i,g/portions]);if(r.per){d.portions=1}d.meals=r.per?Math.max(1,+r.meals||3):Math.max(1,Math.round(portions/Math.max(1,SUMF('ld'))));
   if(cat==='bake'){d.B=items;d.pcs=portions}else if(cat==='soup')d.S=per;else d.H=per;
   if(!items.length&&!man){d.man=[0,0,0,0]}
   return d};
@@ -971,38 +977,43 @@ function loadUserRecipes(){
 }
 let RE=null;
 function recEditView(){
- const opts=Object.entries(ALL).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}"${id===RE.cur?' selected':''}>${esc(v.n)}</option>`).join('');
- const it=ALL[RE.cur];const tot=macros(RE.items);const per=tot.map(x=>x/Math.max(1,RE.portions||1));
+ const opts=`<option value="" disabled${RE.cur?'':' selected'}>— выберите продукт —</option>`+Object.entries(ALL).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}"${id===RE.cur?' selected':''}>${esc(v.n)}</option>`).join('');
+ const it=ALL[RE.cur];const tot=macros(RE.items);const per=tot.map(x=>x/(RE.cat==='bake'?Math.max(1,RE.portions||1):1));
  return `<h2>${{mod:'Изменить под нас',book:'Изменить для всех',sedit:'Изменить для всех',snew:'Новый общий рецепт'}[RE.mode]||(RE.id?'Изменить рецепт':'Свой рецепт')}</h2>${{mod:'<p class="note">Правка видна только вашей кухне. Гарнир и соус по-прежнему выбираются в рецепте отдельно.</p>',book:'<p class="note">Правку сразу увидят все кухни (кроме тех, кто изменил это блюдо под себя).</p>',sedit:'<p class="note">Правку сразу увидят все кухни.</p>',snew:'<p class="note">Рецепт сразу появится у всех кухонь в «Общих».</p>'}[RE.mode]||'<p class="note">Любимое блюдо — запиши один раз, и оно появится в рецептах, в плане недели, в дневнике и в покупках, когда поставишь его в план.</p>'}
  <div class="field">Название<input id="rn" value="${esc(RE.n)}" placeholder="Например, яичница"></div>
  <div class="row2"><div class="field">Раздел<select id="rc">${Object.entries(CATL).map(([k,v])=>`<option value="${k}"${RE.cat===k?' selected':''}>${v}</option>`).join('')}</select></div>
- <div class="field">${RE.cat==='bake'?'Сколько штук выходит':'Сколько порций выходит'}<input id="rpo" type="number" inputmode="decimal" min="1" value="${RE.portions}"></div></div>
- <p class="note" style="margin-top:-4px">Порция — стандартная (на ~2250 ккал в день). Каждому приложение посчитает его долю: ${ppl().map(p=>esc(p.name)+' '+R(p.f*100)+'%').join(', ')}.</p>
- <h3 style="margin:10px 0 6px">Продукты на всё блюдо</h3>
+ <div class="field">${RE.cat==='bake'?'Сколько штук выходит':'Сколько раз готовим на кухню'}<input id="rpo" type="number" inputmode="numeric" min="1" step="1" value="${RE.portions}"></div></div>
+ <p class="note" style="margin-top:-4px">${RE.cat==='bake'?'Продукты — на всю партию, калории на штуку посчитаются сами.':`Продукты — на одну стандартную порцию (на ~2250 ккал в день). «${RE.portions} раза» — это ${RE.portions} приёма пищи для всей кухни: каждому его доля (${ppl().map(p=>esc(p.name)+' '+R(p.f*100)+'%').join(', ')}).`}</p>
+ <h3 style="margin:10px 0 6px">${RE.cat==='bake'?'Продукты на всю партию':'Продукты на одну порцию'}</h3>
  <div class="qline"><select id="rp" aria-label="Продукт">${opts}</select><input id="rqn" type="number" inputmode="decimal" min="0" step="0.5" value="1" aria-label="Сколько"><select id="rqu" aria-label="Чего">${qUnits(RE.cur)}</select></div>
  <div class="row2"><button class="btn pri" data-act="radd" style="justify-content:center">Добавить продукт</button><button class="btn" data-act="newprod" data-back="rec" style="justify-content:center">+ Свой продукт</button></div>
  <div class="card" style="margin-top:10px">${RE.items.length?RE.items.map(([i,g,u],j)=>{const v=vibe(i,g);return `<div class="entry rrow"><div class="t">${esc(ALL[i].n)}<small>${v.eye} · ${v.gr}</small></div><input class="rqty" data-i="${j}" type="number" inputmode="decimal" min="0" step="any" value="${rowQty(i,g,u)}" aria-label="Сколько: ${esc(ALL[i].n)}"><select class="runit" data-i="${j}" aria-label="Единица">${unitOpts(i,u)}</select><span class="k">${R(macros([[i,g]])[0])}</span><button class="x" data-act="rrm" data-i="${j}" aria-label="Убрать">×</button></div>`}).join(''):'<div class="empty">Продуктов пока нет. Можно и без них — тогда впиши калории порции ниже.</div>'}</div>
- ${RE.items.length?`<p style="margin:8px 0">Одна стандартная порция ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p>`:`<h3 style="margin:10px 0 6px">Или калории одной порции</h3><div class="row4"><div class="field">Ккал<input id="rmk" type="number" inputmode="decimal" value="${RE.man?RE.man[0]:''}"></div><div class="field">Б<input id="rmp" type="number" inputmode="decimal" value="${RE.man?RE.man[1]:''}"></div><div class="field">Ж<input id="rmf" type="number" inputmode="decimal" value="${RE.man?RE.man[2]:''}"></div><div class="field">У<input id="rmc" type="number" inputmode="decimal" value="${RE.man?RE.man[3]:''}"></div></div>`}
+ ${RE.items.length?`<p style="margin:8px 0">${RE.cat==='bake'?'Одна штука':'Одна стандартная порция'} ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p><div id="rbatch">${RE.cat==='bake'?'':batchBox(RE.items,RE.portions,RE.cat)}</div>`:`<h3 style="margin:10px 0 6px">Или калории одной порции</h3><div class="row4"><div class="field">Ккал<input id="rmk" type="number" inputmode="decimal" value="${RE.man?RE.man[0]:''}"></div><div class="field">Б<input id="rmp" type="number" inputmode="decimal" value="${RE.man?RE.man[1]:''}"></div><div class="field">Ж<input id="rmf" type="number" inputmode="decimal" value="${RE.man?RE.man[2]:''}"></div><div class="field">У<input id="rmc" type="number" inputmode="decimal" value="${RE.man?RE.man[3]:''}"></div></div>`}
  ${optsEditor()}
+ <div class="field">Метка в списке рецептов <span class="note">(например «наши», «из ТикТока», «готовит Вова»; пусто — без метки)</span><input id="rtag" value="${esc(RE.tag??'')}" maxlength="30"></div>
  <div class="field">Время (необязательно)<input id="rt" value="${esc(RE.time)}" placeholder="~30 мин"></div>
  <div class="field">Как готовить — каждый шаг с новой строки (можно пропустить)<textarea id="rs" rows="5" style="border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:16px/1.4 Manrope,sans-serif;color:var(--ink)">${esc(RE.steps)}</textarea></div>
  <button class="btn tom" data-act="rsave" style="width:100%;justify-content:center">${RE.mode==='book'||RE.mode==='sedit'?'Сохранить для всех':RE.mode==='snew'?'Добавить в общие':'Сохранить рецепт'}</button>`}
-function keepRE(){keepOG();const g=x=>$(x)?$(x).value:null;RE.n=g('#rn')??RE.n;RE.cat=g('#rc')??RE.cat;RE.portions=parseFloat(String(g('#rpo')??RE.portions).replace(',','.'))||1;RE.time=g('#rt')??RE.time;RE.steps=g('#rs')??RE.steps;
+function batchBox(items,times,cat){const k=(cat==='bf'?SUMF('b'):SUMF('ld'));const m=Math.max(1,Math.round(+times||1))*k;
+ const rows=items.map(([i,g])=>{const v=vibe(i,g*m);return `<span>${esc(ALL[i].n)}</span><span>${v.eye} · ${v.gr}</span>`}).join('');
+ return `<div class="card" style="margin:8px 0"><b>На всю готовку</b> <span class="note">— ${Math.round(+times||1)} ${plural(Math.round(+times||1),['раз','раза','раз'])} всей кухне, за раз ${String(Math.round(k*100)/100).replace('.',',')} порции (${ppl().map(p=>esc(p.name)+' '+String(Math.round(p.f*100)/100).replace('.',',')).join(' + ')})</span><div class="ing" style="margin-top:6px">${rows}</div>${(RE&&RE.opts||[]).some(g=>g.c.length)?'<p class="note" style="margin:6px 0 0">+ выбранный гарнир/соус</p>':''}</div>`}
+function keepRE(){keepOG();const g=x=>$(x)?$(x).value:null;RE.n=g('#rn')??RE.n;RE.cat=g('#rc')??RE.cat;RE.portions=Math.max(1,Math.round(parseFloat(String(g('#rpo')??RE.portions).replace(',','.'))||1));RE.time=g('#rt')??RE.time;RE.steps=g('#rs')??RE.steps;RE.tag=g('#rtag')??RE.tag;
  if($('#rmk'))RE.man=['#rmk','#rmp','#rmf','#rmc'].map(x=>parseFloat(String($(x).value).replace(',','.'))||0)}
+const favBtn=id=>{const on=!!(S.favs||{})[id];return `<button class="favb" data-act="fav" data-id="${esc(id)}" aria-pressed="${on}" aria-label="${on?'Убрать из избранного':'В избранное'}"><svg viewBox="0 0 24 24" width="22" height="22" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>`};
 function renderRecipes(){
  const q=S.rq.toLowerCase().trim();const sec=S.rsec||'common',cat=S.rcat||'all';
- const inSec=d=>sec==='own'?d.src==='user':d.src!=='user';
+ const FV=S.favs||{};const inSec=d=>cat==='fav'?!!FV[d.id]:sec==='own'?d.src==='user':d.src!=='user';
  const base=allDishes().filter(inSec);
- const list=base.filter(d=>(cat==='all'||d.cat===cat)&&(!q||d.n.toLowerCase().includes(q)));
- const CATS=[['all','Все'],['bf','Завтраки'],['soup','Первое'],['main','Второе'],['bake','Выпечка']];
- const cnt=c=>base.filter(d=>c==='all'||d.cat===c).length;const nOwn=allDishes().filter(d=>d.src==='user').length;
+ const list=base.filter(d=>(cat==='all'||cat==='fav'||d.cat===cat)&&(!q||d.n.toLowerCase().includes(q)));
+ const CATS=[['all','Все'],['fav','★ Избранное'],['bf','Завтраки'],['soup','Первое'],['main','Второе'],['bake','Выпечка']];
+ const cnt=c=>c==='fav'?allDishes().filter(d=>FV[d.id]).length:allDishes().filter(d=>(sec==='own'?d.src==='user':d.src!=='user')&&(c==='all'||d.cat===c)).length;const nOwn=allDishes().filter(d=>d.src==='user').length;
  const top=sec==='own'?`<div class="row2" style="margin-bottom:10px"><button class="btn tom" data-act="newrec" style="justify-content:center">+ ${cat==='all'?'Записать свой':'В «'+CATS.find(x=>x[0]===cat)[1]+'»'}</button><button class="btn" data-act="myprods" style="justify-content:center">Мои продукты${(S.prods||[]).length?' ('+S.prods.length+')':''}</button></div>`
   :isAdmin()?`<button class="btn tom" data-act="newrec" data-mode="snew" style="width:100%;justify-content:center;margin-bottom:10px">+ Добавить в общие${cat==='all'?'':' · «'+CATS.find(x=>x[0]===cat)[1]+'»'}</button>`
   :`<p class="note" style="margin:0 2px 10px">Общая книга для всех кухонь. Своё блюдо запишите в «Свои» — его можно отправить сюда, после одобрения оно появится у всех.</p>`;
  return `<section><div class="seg"><button data-act="rsec" data-v="common" aria-pressed="${sec==='common'}">Общие</button><button data-act="rsec" data-v="own" aria-pressed="${sec==='own'}">Свои${nOwn?' · '+nOwn:''}</button></div></section>
  <section>${top}<input class="search" id="rq" placeholder="Найти рецепт" value="${esc(S.rq)}" aria-label="Поиск рецепта">
  <div class="chips" style="margin-top:10px">${CATS.map(([v,l])=>`<button class="chip" data-act="rcat" data-v="${v}" aria-pressed="${cat===v}">${l} <small>${cnt(v)}</small></button>`).join('')}</div></section>
- <section class="rlist">${list.map(d=>`<button class="ritem" data-act="recipe" data-id="${d.id}"><div class="t"><b>${esc(d.n)}</b><span>${CATN[d.cat]||''} · ${esc(d.time)} · ${R(portion(d)[0])} ккал</span></div>${srcTag(d)}</button>`).join('')||`<div class="empty">${sec==='own'&&!nOwn?'Своих рецептов пока нет. Нажмите «+ Записать свой».':'Ничего не нашлось'}</div>`}</section>
+ <section class="rlist">${list.map(d=>`<div class="rwrap"><button class="ritem" data-act="recipe" data-id="${d.id}"><div class="t"><b>${esc(d.n)}</b><span>${CATN[d.cat]||''} · ${esc(d.time)} · ${R(portion(d)[0])} ккал</span></div>${srcTag(d)}</button>${favBtn(d.id)}</div>`).join('')||`<div class="empty">${cat==='fav'?'В избранном пока пусто. Нажмите закладку у рецепта.':sec==='own'&&!nOwn?'Своих рецептов пока нет. Нажмите «+ Записать свой».':'Ничего не нашлось'}</div>`}</section>
 `;
 }
 
@@ -1071,13 +1082,13 @@ function recipeView(id){return ()=>{
  if(d.cat==='main'){kb=tbl('Порция',PP.map(p=>[p.name,portion(d,p.id)]))+(d.man?'':`<div class="eye" style="margin-top:10px"><b>На тарелку на глаз</b><br>${PP.map(p=>`${esc(p.name)}: ${plate(full(d).map(([i,g])=>[i,g*p.f]))}.`).join('<br>')}</div>`)}
  else if(d.cat==='bake'){kb=tbl('1 штука',[['',portion(d)]])}
  else{kb=tbl(d.cat==='soup'?'Тарелка (с 2 тостами)':'Порция',PP.map(p=>[p.name,portion(d,p.id)]))}
- const b=d.src==='user'||d.src==='shared'?Object.fromEntries((d.items||[]).map(([i,g])=>[i,g])):batchItems(d);
- const head=d.src==='user'||d.src==='shared'?`Продукты на всё блюдо (≈${d.portions} ${plural(d.portions,['порция','порции','порций'])} стандартного размера)`:d.cat==='main'?'На одну готовку (3 обеда-ужина всей кухне)':d.cat==='soup'?'На кастрюлю (2 ужина всей кухне)':d.cat==='bake'?`На партию (${d.pcs} шт)`:'На одну стандартную порцию';
+ const tms=d.meals||(d.cat==='soup'?BATCH.S:BATCH.H);const b=d.cat==='bake'?Object.fromEntries((d.B||[]).map(([i,g])=>[i,g])):d.cat==='bf'?(d.meals?Object.fromEntries(full(d).map(([i,g])=>[i,g*d.meals*SUMF('b')])):Object.fromEntries(full(d))):batchItems(d);
+ const head=d.cat==='bake'?`На партию (${d.pcs} шт)`:d.cat==='bf'?(d.meals?`На всю готовку (${d.meals} ${plural(d.meals,['раз','раза','раз'])} всей кухне)`:'На одну стандартную порцию'):`${d.cat==='soup'?'На кастрюлю':'На всю готовку'} (${tms} ${plural(tms,['раз','раза','раз'])} всей кухне)`;
  const ing=Object.entries(b).map(([i,g])=>{const v=vibe(i,g);return `<span>${esc(ALL[i].n)}</span><span>${v.eye} · ${v.gr}</span>`}).join('');
  const ch=choice(d);
  const optsH=(d.opts||[]).map((o,k)=>`<div style="margin:12px 0 0"><div class="note" style="margin-bottom:6px">${esc(o.t)}</div><div class="chips">${o.c.map((c,i)=>`<button class="chip" data-act="opt" data-id="${d.id}" data-k="${k}" data-i="${i}" aria-pressed="${ch[k]===i}">${esc(c[0])}</button>`).join('')}</div></div>`).join('');
  const pm=parse(S.wk);const planH=`<div style="margin:14px 0 0"><div class="note" style="margin-bottom:6px">Поставить в план этой недели</div><div class="chips">${DOW.map((x,i)=>`<button class="chip day" data-act="toplan" data-id="${d.id}" data-i="${i}">${x}<small>${addDays(pm,i).getDate()}</small></button>`).join('')}</div></div>`;
- return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><h2 style="margin-top:10px">${esc(d.n)}</h2>${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
+ return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px"><h2 style="flex:1;margin:0">${esc(d.n)}</h2>${favBtn(d.id)}</div>${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
  ${ing?`<h3 style="margin:18px 0 8px">${head}</h3><div class="ing">${ing}</div>`:''}<p class="note">Соль, перец, паприка, уксус — по вкусу.</p>
  ${noHeat(d)?'<div class="eye" style="margin-top:12px"><b>Нужна духовка или аэрогриль</b> — отметьте в настройках, что есть на кухне.</div>':''}${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(devText(s))}</li>`).join('')}</ol>${ovenNote(d)}`:''}${d.tip?`<div class="eye">${esc(devText(d.tip))}</div>`:''}${recActs(d)}`}}
 function swapView(s){return ()=>{
@@ -1091,11 +1102,11 @@ let B={items:[],name:'',save:false};
 function builderView(){
  const opts=Object.entries(ALL).filter(([,v])=>!v.pantry||v.n).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}">${esc(v.n)}</option>`).join('');
  const tot=macros(B.items.map(x=>[x.id,x.g]));
- const sel=B.cur||'breast';const us=ALL[sel].u;
+ const sel=B.cur||'';const us=sel&&ALL[sel]?ALL[sel].u:[];
  return `<h2>Своё блюдо</h2><p class="note">Выбери продукты и сколько примерно положила — на глаз. Калории посчитаются сами. Порция — то, что съел(а) ${esc(P(S.who).name)}.</p>
- <div class="field">Продукт<select id="bp">${opts.replace(`value="${sel}"`,`value="${sel}" selected`)}</select></div>
+ <div class="field">Продукт<select id="bp"><option value="" disabled${sel?'':' selected'}>— выберите продукт —</option>${sel?opts.replace(`value="${sel}"`,`value="${sel}" selected`):opts}</select></div>
  <div class="row2"><div class="field">Сколько<input id="bn" type="number" inputmode="decimal" min="0" step="0.5" value="1"></div>
- <div class="field">Чего<select id="bu">${us.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${ALL[sel].ml?'мл':'г'})</option>`).join('')}<option value="g">граммов</option></select></div></div>
+ <div class="field">Чего<select id="bu">${us.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${ALL[sel]&&ALL[sel].ml?'мл':'г'})</option>`).join('')}<option value="g">граммов</option></select></div></div>
  <button class="btn pri" data-act="badd">Добавить в тарелку</button>
  <div class="card" style="margin-top:14px">${B.items.length?B.items.map((x,i)=>`<div class="entry"><div class="t">${esc(ALL[x.id].n)}<small>${esc(x.txt)}</small></div><span class="k">${R(macros([[x.id,x.g]])[0])}</span><button class="x" data-act="brm" data-i="${i}" aria-label="Убрать">×</button></div>`).join(''):'<div class="empty">Тарелка пустая</div>'}</div>
  <div class="big" style="font-size:24px">${fmt(tot[0])} <small>ккал · Б ${R(tot[1])} · Ж ${R(tot[2])} · У ${R(tot[3])}</small></div>
@@ -1166,7 +1177,7 @@ function rolesView(){const sup=isSuper();const mods=S.modList||[];
 function unsubAll(){[...unsubs,...wkUnsubs].forEach(u=>{try{u()}catch(e){}});unsubs=[];wkUnsubs=[]}
 function openKitchen(kid){
  unsubAll();S.kid=kid;LS.set('kid',kid);S.kdoc=(S.kitchens||[]).find(k=>k.id===kid)||S.kdoc;
- S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];S.prods=[];S.pantry={};loadProducts();applyMods();loadUserRecipes();syncPeople();
+ S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];S.prods=[];S.pantry={};S.favs={};loadProducts();applyMods();loadUserRecipes();syncPeople();
  loadTimer=setTimeout(()=>{stale=true;banner()},10000);subscribeAll();render()}
 function saveKitchen(patch){const k=Object.assign({},S.kdoc||{},patch);delete k.id;S.kdoc=Object.assign({id:S.kid},k);render();return store.setDoc('kitchens/'+S.kid,k)}
 function newPersonFor(email,name,i){return {id:rid(),name:name||'Я',color:COLORS[(i||0)%COLORS.length],sex:'m',age:30,h:175,w:75,act:'light',goal:'keep',meals:{b:1,l:1,d:1},pct:null,tg:null,email:email||''}}
@@ -1220,7 +1231,7 @@ function accessView(){const list=S.access||[];const sup=isSuper();
 function saveAccess(list){S.access=list;refreshSheet();return store.setDoc('access/main',{emails:list})}
 
 // ---------- общая книга: отправка и одобрение ----------
-function recDoc(r){const x={opts:r.opts||[],n:r.n,cat:r.cat,portions:r.portions,items:r.items,time:r.time||'',steps:r.steps||[],man:r.man||null};return JSON.parse(JSON.stringify(x))}
+function recDoc(r){const x={tag:typeof r.tag==='string'?r.tag:null,per:r.per||0,meals:r.meals||null,opts:r.opts||[],n:r.n,cat:r.cat,portions:r.portions,items:r.items,time:r.time||'',steps:r.steps||[],man:r.man||null};return JSON.parse(JSON.stringify(x))}
 function shareRec(uid){const r=S.urec.find(x=>x.id===uid);if(!r)return;const rec=recDoc(r);const prods={};
  (rec.items||[]).forEach(x=>{if(String(x.i).startsWith('p_')){const p=(S.prods||[]).find(y=>'p_'+y.id===x.i);if(p)prods[x.i]=prodDoc(p)}});
  store.add('pending',{type:'recipe',kid:S.kid,kname:(S.kdoc&&S.kdoc.name)||'',by:me(),at:Date.now(),rec,prods}).then(()=>{closeSheet();toast('Отправлено на одобрение. Когда примут — рецепт появится у всех')})}
@@ -1247,14 +1258,14 @@ function recActs(d){
  return `<div class="acts" style="margin-top:14px">${h}</div>`}
 
 // ---------- правка общих блюд под свою кухню ----------
-const BASE={};DISHES.forEach(d=>{BASE[d.id]={n:d.n,H:d.H,S:d.S,B:d.B,pcs:d.pcs,steps:d.steps,time:d.time,opts:d.opts,mod:false}});
+const BASE={};DISHES.forEach(d=>{BASE[d.id]={n:d.n,H:d.H,S:d.S,B:d.B,pcs:d.pcs,steps:d.steps,time:d.time,opts:d.opts,meals:d.meals,tag:undefined,mod:false}});
 function applyMods(){
  for(const id in BASE){Object.assign(D[id],BASE[id]);D[id].hidden=false}
  applyBook();
  for(const m of Object.values(S.mods||{})){const d=D[m.id];if(!d||!BASE[m.id])continue;
   const items=(m.items||[]).filter(x=>x&&ALL[x.i]&&+x.g>0).map(x=>[x.i,+x.g]);const po=Math.max(1,+m.portions||1);
   if(items.length){if(d.cat==='bake'){d.B=items;d.pcs=po}else{const per=items.map(([i,g])=>[i,g/po]);if(d.cat==='soup')d.S=per;else d.H=per}}
-  if(Array.isArray(m.opts))d.opts=parseOpts(m.opts);if(m.n)d.n=String(m.n).slice(0,80);if(Array.isArray(m.steps)&&m.steps.length)d.steps=m.steps.map(x=>String(x).slice(0,500));if(m.time)d.time=String(m.time).slice(0,30);d.mod=true}}
+  if(typeof m.tag==='string')d.tag=m.tag.slice(0,30);if(Array.isArray(m.opts))d.opts=parseOpts(m.opts);if(+m.meals>0)d.meals=+m.meals;if(m.n)d.n=String(m.n).slice(0,80);if(Array.isArray(m.steps)&&m.steps.length)d.steps=m.steps.map(x=>String(x).slice(0,500));if(m.time)d.time=String(m.time).slice(0,30);d.mod=true}}
 function modStart(id){const d=D[id];if(d)editStart(d,'mod')}
 
 // ---------- профиль человека и вес ----------
@@ -1360,7 +1371,7 @@ function prodView(){const p=PR;const f=(id,l,v,ph)=>`<div class="field">${l}<inp
  return `<h2>${p.id?'Изменить продукт':'Свой продукт'}</h2><p class="note">КБЖУ — с упаковки, на 100 г. Если продукт штучный, впишите граммы и штуки в пачке — тогда его можно добавлять штуками.</p>
  <div class="field">Название<input id="prn" value="${esc(p.n||'')}" maxlength="60" autocomplete="off"></div><div id="prsug">${prodSug(p.n)}</div>
  <div class="row4">${f('prk','Ккал',p.k&&p.k[0])}${f('prp','Б',p.k&&p.k[1])}${f('prf','Ж',p.k&&p.k[2])}${f('prc','У',p.k&&p.k[3])}</div>
- <div class="row2">${f('prg','Граммов в пачке',p.packG,'300')}${f('prs','Штук в пачке',p.pcs,'6')}</div>
+ <div class="row2">${f('prg','Граммов в пачке',p.packG)}${f('prs','Штук в пачке',p.pcs)}</div>
  ${+p.packG>0&&+p.pcs>0?`<p class="note" style="margin-top:-4px">1 шт = ${String(Math.round(p.packG/p.pcs*10)/10).replace('.',',')} г</p>`:''}
  ${f('prpr','Цена пачки, ₽ (необязательно — для покупок)',p.price)}
  <button class="btn pri" data-act="prsave" style="width:100%;justify-content:center">${p.id?'Сохранить':'Добавить продукт'}</button>`}
@@ -1389,10 +1400,10 @@ function applyBook(){for(const b of S.book||[]){const d=D[b.id];if(!d||!BASE[b.i
  if(b.deleted){d.hidden=true;continue}
  const items=(b.items||[]).filter(x=>x&&ALL[x.i]&&+x.g>0).map(x=>[x.i,+x.g]);const po=Math.max(1,+b.portions||1);
  if(items.length){if(d.cat==='bake'){d.B=items;d.pcs=po}else{const per=items.map(([i,g])=>[i,g/po]);if(d.cat==='soup')d.S=per;else d.H=per}}
- if(Array.isArray(b.opts))d.opts=parseOpts(b.opts);if(b.n)d.n=String(b.n).slice(0,80);if(Array.isArray(b.steps))d.steps=b.steps.map(x=>String(x).slice(0,500));if(b.time)d.time=String(b.time).slice(0,30)}}
+ if(typeof b.tag==='string')d.tag=b.tag.slice(0,30);if(Array.isArray(b.opts))d.opts=parseOpts(b.opts);if(+b.meals>0)d.meals=+b.meals;if(b.n)d.n=String(b.n).slice(0,80);if(Array.isArray(b.steps))d.steps=b.steps.map(x=>String(x).slice(0,500));if(b.time)d.time=String(b.time).slice(0,30)}}
 function editStart(d,mode){const base=d.cat==='bake'?d.B:d.cat==='soup'?d.S:d.H;const user=d.src==='user'||d.src==='shared';
- RE={mode,did:d.id,uid:d.uid,id:mode==='user'?d.uid:null,n:d.n,cat:d.cat,portions:user?d.portions:(d.cat==='bake'?d.pcs:1),
-  items:(user?d.items:(base||[])).map(x=>[x[0],Math.round(x[1]),'g']),time:d.time==='—'?'':d.time,steps:(d.steps||[]).join('\n'),man:user&&!d.items.length?d.man:null,cur:'egg',opts:optsToRE(d.opts)};openSheet(recEditView)}
+ RE={mode,did:d.id,uid:d.uid,id:mode==='user'?d.uid:null,n:d.n,cat:d.cat,portions:d.cat==='bake'?(d.pcs||1):(d.meals||(d.cat==='soup'?BATCH.S:d.cat==='bf'?1:BATCH.H)),
+  items:(d.cat==='bake'?(user?d.items:d.B):(base||[])).map(x=>[x[0],Math.round(x[1]*10)/10,'g']),time:d.time==='—'?'':d.time,steps:(d.steps||[]).join('\n'),man:user&&!d.items.length?d.man:null,cur:'',opts:optsToRE(d.opts),tag:typeof d.tag==='string'?d.tag:defTag(d)};openSheet(recEditView)}
 function delCommon(d){if(d.src==='shared'){const r=(S.shared||[]).find(x=>x.id===d.uid);store.del('shared',d.uid);closeSheet();toast('Убрано из общих',r?()=>{const c=Object.assign({},r);delete c.id;store.setDoc('shared/'+d.uid,c)}:null)}
  else{const prev=(S.book||[]).find(b=>b.id===d.id);store.setDoc('book/'+d.id,Object.assign({},prev||{id:d.id},{id:d.id,deleted:true}));closeSheet();toast('Убрано из общих',()=>{const c=Object.assign({},prev||{id:d.id});delete c.deleted;store.setDoc('book/'+d.id,c)})}}
 // единицы в строке рецепта
@@ -1415,9 +1426,9 @@ function optsEditor(){const O=RE.opts||[];
  <button class="btn" data-act="ogadd" style="width:100%;justify-content:center;margin-bottom:10px">+ Добавить выбор (гарнир, соус…)</button>`}
 function keepOG(){document.querySelectorAll('.ogt').forEach(el=>{const g=(RE.opts||[])[+el.dataset.g];if(g)g.t=el.value.slice(0,30)})}
 let CE=null;
-function choiceView(){const opts=Object.entries(ALL).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}"${id===CE.cur?' selected':''}>${esc(v.n)}</option>`).join('');const m=macros(CE.items);
+function choiceView(){const opts=`<option value="" disabled${CE.cur?'':' selected'}>— выберите продукт —</option>`+Object.entries(ALL).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}"${id===CE.cur?' selected':''}>${esc(v.n)}</option>`).join('');const m=macros(CE.items);
  return `<h2>Вариант: ${esc((RE.opts[CE.g]||{}).t||'')}</h2>
- <div class="field">Название варианта<input id="cen" value="${esc(CE.n)}" maxlength="40" placeholder="Например, рис"></div>
+ <div class="field">Название варианта<input id="cen" value="${esc(CE.n)}" maxlength="40"></div>
  <h3 style="margin:10px 0 6px">Продукты на одну порцию</h3>
  <div class="qline"><select id="cp" aria-label="Продукт">${opts}</select><input id="cqn" type="number" inputmode="decimal" min="0" step="0.5" value="1" aria-label="Сколько"><select id="cqu" aria-label="Чего">${qUnits(CE.cur)}</select></div>
  <button class="btn pri" data-act="cadd" style="width:100%;justify-content:center">Добавить продукт</button>
@@ -1453,7 +1464,7 @@ document.addEventListener('click',ev=>{
  else if(a==='cook'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;if(p.cooked[s])delete p.cooked[s];else p.cooked[s]=Date.now();savePlan(p)}
  else if(a==='unplace'){const p=JSON.parse(JSON.stringify(plan()));(p.days[t.dataset.i]||[]).splice(+t.dataset.j,1);savePlan(p)}
  else if(a==='clearplan'){const p=JSON.parse(JSON.stringify(plan()));const old=p.days;p.days={};savePlan(p);toast('План очищен',()=>{const q=JSON.parse(JSON.stringify(plan()));q.days=old;savePlan(q)})}
- else if(a==='qadd'){const id=$('#qp').value,n=parseFloat(String($('#qn').value).replace(',','.'))||0;if(n<=0){$('#qn').focus();return}const am=amountOf(id,n,$('#qu').value);addLog(ALL[id].n,macros([[id,am.g]]),am.txt)}
+ else if(a==='qadd'){const id=$('#qp').value;if(!id||!ALL[id]){$('#qp').focus();toast('Выберите продукт');return}const n=parseFloat(String($('#qn').value).replace(',','.'))||0;if(n<=0){$('#qn').focus();return}const am=amountOf(id,n,$('#qu').value);addLog(ALL[id].n,macros([[id,am.g]]),am.txt)}
  else if(a==='exadd'){const n=$('#exn').value.trim().slice(0,80);if(!n){$('#exn').focus();return}S.shop.extra=S.shop.extra||[];S.shop.extra.push({n,q:$('#exq').value.trim().slice(0,40),price:parseFloat(String($('#exp').value).replace(',','.'))||0,got:false});saveShop()}
  else if(a==='exgot'){const x=S.shop.extra[+t.dataset.i];if(x){x.got=!x.got;saveShop()}}
  else if(a==='exdel'){const i=+t.dataset.i;const x=S.shop.extra[i];S.shop.extra.splice(i,1);saveShop();if(x)toast('Убрано: '+x.n,()=>{S.shop.extra.splice(i,0,x);saveShop()})}
@@ -1467,18 +1478,18 @@ document.addEventListener('click',ev=>{
   const q=num('#pq');S.shop.qty=S.shop.qty||{};if(q!=null&&q>0)S.shop.qty[id]=q;else delete S.shop.qty[id];saveShop();closeSheet();toast('Сохранено')}
  else if(a==='preset'){const id=t.dataset.id;delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});if(S.shop.qty)delete S.shop.qty[id];saveShop();closeSheet()}
  else if(a==='cookv'){const k=t.dataset.date;const q=cookQ();if(q){if(S.cook[k]===q.id)delete S.cook[k];else{S.cook[k]=q.id;party()}}else{const ids=ppl().map(p=>p.id);const i=ids.indexOf(S.cook[k]);if(i+1<ids.length){S.cook[k]=ids[i+1];party()}else delete S.cook[k]}ks.setDoc('cookdays/main',{d:S.cook});render()}
- else if(a==='newrec'){RE={mode:t.dataset.mode||null,id:null,n:'',cat:S.rcat&&S.rcat!=='all'?S.rcat:'main',portions:t.dataset.mode?4:2,items:[],time:'',steps:'',man:null,cur:'egg',opts:[]};openSheet(recEditView)}
+ else if(a==='newrec'){RE={mode:t.dataset.mode||null,id:null,n:'',cat:S.rcat&&S.rcat!=='all'?S.rcat:'main',portions:t.dataset.mode?4:2,items:[],time:'',steps:'',man:null,cur:'',opts:[],tag:t.dataset.mode?'наши':'свой рецепт'};openSheet(recEditView)}
  else if(a==='editrec'){const d=D['u_'+t.dataset.id];if(d)editStart(d,'user')}
  else if(a==='delrec'){const r=S.urec.find(x=>x.id===t.dataset.id);if(!r)return;const keep=Object.assign({},r);delete keep.id;ks.del('recipes',r.id);closeSheet();toast('Рецепт удалён',()=>ks.add('recipes',keep))}
- else if(a==='radd'){keepRE();const id=$('#rp').value,n=parseFloat(String($('#rqn').value).replace(',','.'))||0;if(n<=0)return;const uu=$('#rqu').value;const am=amountOf(id,n,uu);RE.items.push([id,am.g,uu==='g'?'g':+uu]);RE.cur=id;refreshSheet()}
+ else if(a==='radd'){keepRE();const id=$('#rp').value;if(!id||!ALL[id]){toast('Выберите продукт');return}const n=parseFloat(String($('#rqn').value).replace(',','.'))||0;if(n<=0)return;const uu=$('#rqu').value;const am=amountOf(id,n,uu);RE.items.push([id,am.g,uu==='g'?'g':+uu]);RE.cur=id;refreshSheet()}
  else if(a==='rrm'){keepRE();RE.items.splice(+t.dataset.i,1);refreshSheet()}
  else if(a==='rsave'){keepRE();const n=RE.n.trim().slice(0,80);if(!n){$('#rn').focus();return}
   if(!RE.items.length&&!(RE.man&&RE.man[0]>0)){$('#rmk')&&$('#rmk').focus();toast('Добавь продукты или калории порции');return}
-  const doc={opts:optsDoc(RE.opts),n,cat:RE.cat,portions:Math.max(1,RE.portions),items:RE.items.map(([i,g])=>({i,g:R(g)})),time:RE.time.trim().slice(0,30),steps:RE.steps.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,30),man:RE.items.length?null:RE.man,ts:Date.now()};
-  if(RE.mode==='book'){store.setDoc('book/'+RE.did,{id:RE.did,n,portions:doc.portions,items:doc.items,opts:doc.opts,time:doc.time,steps:doc.steps,ts:doc.ts});closeSheet();toast('Изменено для всех кухонь');return}
+  const bk=RE.cat==='bake';const doc={per:bk?0:1,meals:bk?null:Math.max(1,RE.portions),opts:optsDoc(RE.opts),n,cat:RE.cat,portions:bk?Math.max(1,RE.portions):1,items:RE.items.map(([i,g])=>({i,g:R(g)})),tag:String(RE.tag??'').trim().slice(0,30),time:RE.time.trim().slice(0,30),steps:RE.steps.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,30),man:RE.items.length?null:RE.man,ts:Date.now()};
+  if(RE.mode==='book'){store.setDoc('book/'+RE.did,{id:RE.did,tag:doc.tag,meals:doc.meals,n,portions:doc.portions,items:doc.items,opts:doc.opts,time:doc.time,steps:doc.steps,ts:doc.ts});closeSheet();toast('Изменено для всех кухонь');return}
   if(RE.mode==='sedit'){const r=(S.shared||[]).find(x=>x.id===RE.uid)||{};store.setDoc('shared/'+RE.uid,Object.assign({by:r.by||me()},doc));closeSheet();toast('Изменено для всех кухонь');return}
   if(RE.mode==='snew'){if(doc.items.some(x=>String(x.i).startsWith('p_'))){toast('В общем рецепте нельзя использовать свои продукты — сначала добавьте их в общий список');return}store.add('shared',Object.assign({by:me()},doc));closeSheet();toast('Добавлено в общие рецепты');return}
-  if(RE.mode==='mod'){ks.setDoc('mods/'+RE.did,{id:RE.did,n,portions:doc.portions,items:doc.items,opts:doc.opts,time:doc.time,steps:doc.steps,ts:doc.ts});closeSheet();toast('Изменено только для вашей кухни');return}
+  if(RE.mode==='mod'){ks.setDoc('mods/'+RE.did,{id:RE.did,tag:doc.tag,meals:doc.meals,n,portions:doc.portions,items:doc.items,opts:doc.opts,time:doc.time,steps:doc.steps,ts:doc.ts});closeSheet();toast('Изменено только для вашей кухни');return}
   if(RE.id)ks.setDoc('recipes/'+RE.id,doc);else ks.add('recipes',doc);closeSheet();toast('Рецепт сохранён — он уже в пуле недели')}
  else if(a==='opt'){const id=t.dataset.id,k=+t.dataset.k,i=+t.dataset.i;const cur=(S.var[id]||[]).slice();const n=D[id].opts.length;while(cur.length<n)cur.push(0);cur[k]=i;S.var[id]=cur;VAR=S.var;ks.setDoc('variants/main',{v:S.var});render();refreshSheet()}
  else if(a==='toplan'){placeDish(t.dataset.id,+t.dataset.i,'pool');toast('Поставлено на '+DOW[+t.dataset.i])}
@@ -1492,7 +1503,7 @@ document.addEventListener('click',ev=>{
  else if(a==='got'){const id=t.dataset.id;if(S.shop.got[id])delete S.shop.got[id];else S.shop.got[id]=true;saveShop()}
  else if(a==='home'){const id=t.dataset.id;if(ALL[id]&&ALL[id].pantry){S.pantry=S.pantry||{};S.pantry[id]=!isHome(id);ks.setDoc('pantry/main',{h:S.pantry});render()}else{if(S.shop.home[id])delete S.shop.home[id];else S.shop.home[id]=true;saveShop()}}
  else if(a==='builder'){B={items:[],name:'',save:false};openSheet(builderView)}
- else if(a==='badd'){const id=$('#bp').value,n=parseFloat(String($('#bn').value).replace(',','.'))||0,u=$('#bu').value;if(n<=0)return;
+ else if(a==='badd'){const id=$('#bp').value;if(!id||!ALL[id]){toast('Выберите продукт');return}const n=parseFloat(String($('#bn').value).replace(',','.'))||0,u=$('#bu').value;if(n<=0)return;
   const it=ALL[id];let g,txt;if(u==='g'){g=n;txt=n+(it.ml?' мл':' г')}else{const un=it.u[+u];g=n*un[1];txt=String(n).replace('.',',')+' '+(Number.isInteger(n)?plural(n,un[0]):un[0][1])+' ≈ '+grams(g,it.ml)}
   B.name=$('#bname').value;B.save=$('#bsave').checked;B.items.push({id,g,txt});B.cur=id;refreshSheet()}
  else if(a==='brm'){B.name=$('#bname').value;B.save=$('#bsave').checked;B.items.splice(+t.dataset.i,1);refreshSheet()}
@@ -1510,7 +1521,7 @@ document.addEventListener('click',ev=>{
  else if(a==='shareprod'){shareProd(t.dataset.id)}
  else if(a==='editall'){const d=D[t.dataset.id];if(d)editStart(d,d.src==='shared'?'sedit':'book')}
  else if(a==='delcommon'){const d=D[t.dataset.id];if(d)delCommon(d)}
- else if(a==='copyown'){const d=D[t.dataset.id];if(d){editStart(d,'user');RE.id=null;RE.mode=null;RE.n=d.n+' (наш вариант)'}}
+ else if(a==='copyown'){const d=D[t.dataset.id];if(d){editStart(d,'user');RE.id=null;RE.mode=null;RE.n=d.n+' (наш вариант)';RE.tag='свой рецепт'}}
  else if(a==='rsec'){S.rsec=t.dataset.v;LS.set('rsec',S.rsec);render()}
  else if(a==='rcat'){S.rcat=t.dataset.v;LS.set('rcat',S.rcat);render()}
  else if(a==='padd'){PE=newPerson();openSheet(personView)}
@@ -1533,15 +1544,16 @@ document.addEventListener('click',ev=>{
  else if(a==='pno'){store.del('pending',t.dataset.id);toast('Отклонено')}
  else if(a==='ogadd'){keepRE();RE.opts=RE.opts||[];RE.opts.push({t:'Гарнир',c:[]});refreshSheet()}
  else if(a==='ogdel'){keepRE();RE.opts.splice(+t.dataset.g,1);refreshSheet()}
- else if(a==='ocadd'){keepRE();CE={g:+t.dataset.g,c:null,n:'',items:[],cur:'rice'};openSheet(choiceView)}
- else if(a==='ocedit'){keepRE();const c=RE.opts[+t.dataset.g].c[+t.dataset.c];CE={g:+t.dataset.g,c:+t.dataset.c,n:c.n,items:c.items.map(x=>x.slice()),cur:c.items[0]?c.items[0][0]:'rice'};openSheet(choiceView)}
+ else if(a==='ocadd'){keepRE();CE={g:+t.dataset.g,c:null,n:'',items:[],cur:''};openSheet(choiceView)}
+ else if(a==='ocedit'){keepRE();const c=RE.opts[+t.dataset.g].c[+t.dataset.c];CE={g:+t.dataset.g,c:+t.dataset.c,n:c.n,items:c.items.map(x=>x.slice()),cur:''};openSheet(choiceView)}
  else if(a==='ocdel'){keepRE();RE.opts[+t.dataset.g].c.splice(+t.dataset.c,1);refreshSheet()}
- else if(a==='cadd'){keepCE();const id=$('#cp').value,n=parseFloat(String($('#cqn').value).replace(',','.'))||0;if(n<=0)return;const uu=$('#cqu').value;const am=amountOf(id,n,uu);CE.items.push([id,am.g,uu==='g'?'g':+uu]);CE.cur=id;refreshSheet()}
+ else if(a==='cadd'){keepCE();const id=$('#cp').value;if(!id||!ALL[id]){toast('Выберите продукт');return}const n=parseFloat(String($('#cqn').value).replace(',','.'))||0;if(n<=0)return;const uu=$('#cqu').value;const am=amountOf(id,n,uu);CE.items.push([id,am.g,uu==='g'?'g':+uu]);CE.cur=id;refreshSheet()}
  else if(a==='crm'){keepCE();CE.items.splice(+t.dataset.i,1);refreshSheet()}
  else if(a==='cback'){CE=null;openSheet(recEditView)}
  else if(a==='csave'){keepCE();if(!CE.n.trim()){$('#cen').focus();toast('Впишите название варианта');return}const g=RE.opts[CE.g];const c={n:CE.n.trim(),items:CE.items};if(CE.c==null)g.c.push(c);else g.c[CE.c]=c;CE=null;openSheet(recEditView)}
  else if(a==='roleadd'){const v=($('#rolein').value||'').trim().toLowerCase();if(!EMAIL_RE.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}if(v===OWNERS()[0]||(S.modList||[]).includes(v)){toast('Уже с ролью');return}S.modList=[...(S.modList||[]),v];store.setDoc('roles/main',{mods:S.modList});refreshSheet();toast(v+' теперь модератор')}
  else if(a==='roledel'){const v=t.dataset.e;S.modList=(S.modList||[]).filter(x=>x!==v);store.setDoc('roles/main',{mods:S.modList});refreshSheet();toast('Роль снята: '+v,()=>{S.modList=[...S.modList,v];store.setDoc('roles/main',{mods:S.modList});refreshSheet()})}
+ else if(a==='fav'){const id=t.dataset.id;S.favs=S.favs||{};if(S.favs[id])delete S.favs[id];else S.favs[id]=true;ks.setDoc('favs/main',{ids:S.favs});render();if(sheetOpen)refreshSheet();toast(S.favs[id]?'В избранном':'Убрано из избранного')}
  else if(a==='modview'){openSheet(modView)}
  else if(a==='pview'){const p=(S.pending||[]).find(x=>x.id===t.dataset.id);if(p)openSheet(()=>pendingPreview(p))}
  else if(a==='accadd'){const v=($('#accin').value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}
@@ -1557,8 +1569,8 @@ document.addEventListener('click',ev=>{
  else if(a==='sdone'){const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const st=Object.assign({},S.settings||{people:[]});st.budget=num('#bud')||DEFAULTS.budget;st.cookQuick=$('#cq').value||null;st.cookLabel=($('#cl').value||'').trim().slice(0,40)||null;st.equip=Object.fromEntries(EQUIP.map(([k])=>[k,$('#eq_'+k)&&$('#eq_'+k).checked?1:0]));S.settings=st;ks.setDoc('settings/main',st);
   const kn=$('#kn_in')?$('#kn_in').value.trim().slice(0,40):'';if(kn){st.title=kn;ks.setDoc('settings/main',st);if(S.fb&&S.kdoc&&isKOwner()&&kn!==S.kdoc.name)saveKitchen({name:kn})}closeSheet();render();toast('Сохранено')}
 });
-document.addEventListener('change',ev=>{if(ev.target.id==='rp'){RE.cur=ev.target.value;$('#rqu').innerHTML=qUnits(RE.cur);return}if(ev.target.id==='rc'){keepRE();refreshSheet();return}if(ev.target.id==='qp'){S.qp=ev.target.value;$('#qu').innerHTML=qUnits(S.qp);return}if(ev.target.id==='bp'){B.cur=ev.target.value;B.name=$('#bname').value;B.save=$('#bsave').checked;refreshSheet()}});
-document.addEventListener('input',ev=>{if(ev.target.id==='rq'){S.rq=ev.target.value;render()}});
+document.addEventListener('change',ev=>{if(ev.target.id==='rpo'&&RE){return}if(ev.target.id==='rp'){RE.cur=ev.target.value;$('#rqu').innerHTML=qUnits(RE.cur);return}if(ev.target.id==='rc'){keepRE();refreshSheet();return}if(ev.target.id==='qp'){S.qp=ev.target.value;$('#qu').innerHTML=qUnits(S.qp);return}if(ev.target.id==='bp'){B.cur=ev.target.value;B.name=$('#bname').value;B.save=$('#bsave').checked;refreshSheet()}});
+document.addEventListener('input',ev=>{if(ev.target.id==='rpo'&&RE&&$('#rbatch')){const v=Math.max(1,Math.round(parseFloat(String(ev.target.value).replace(',','.'))||1));RE.portions=v;if(RE.cat!=='bake')$('#rbatch').innerHTML=RE.items.length?batchBox(RE.items,v,RE.cat):'';return}if(ev.target.id==='rq'){S.rq=ev.target.value;render()}});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&sheetOpen)closeSheet()});
 
 // ---------- запуск ----------
