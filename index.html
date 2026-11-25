@@ -705,9 +705,10 @@ const plan=()=>S.plan||defPlan(S.wk);
 // ---------- хранилище: общая база или этот телефон ----------
 const chains={};
 const queue=(p,fn)=>chains[p]=(chains[p]||Promise.resolve()).then(fn).catch(e=>{if(e&&e.code==='invalid_argument'){S.ro=true;banner()}else if(e&&e.code==='permission-denied')toast('Нет доступа к базе — этой почты нет в списке');else toast('Не сохранилось, попробуй ещё раз')});
+const LOCAL_DOCC=new Set(['settings','variants','prices','cookdays','plans','shop','favs','pantry','access','roles']);
 const Local={
  watchDoc(p,cb){const f=()=>cb(LS.get('d:'+p,null));f();(this.l[p]=this.l[p]||[]).push(f);return()=>{this.l[p]=this.l[p].filter(x=>x!==f)}},
- setDoc(p,o){const m=p.match(/^(recipes|log|custom)\/(.+)$/);if(m){const k='c:'+m[1];const all=LS.get(k,{});all[m[2]]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()}LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()},
+ setDoc(p,o){const m=p.match(/^([^/]+)\/(.+)$/);if(m&&LOCAL_DOCC.has(m[1])){LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()}if(m){const k='c:'+m[1];const all=LS.get(k,{});all[m[2]]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()}LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()},
  watchQ(c,field,val,cb,op){const k='c:'+c;const f=()=>{const all=LS.get(k,{});cb(Object.entries(all).map(([id,o])=>Object.assign({id},o)).filter(o=>!field?true:op==='array-contains'?(o[field]||[]).includes(val):o[field]===val))};f();(this.l[k]=this.l[k]||[]).push(f);return()=>{(this.l[k]=this.l[k].filter(x=>x!==f))}},
  add(c,o){const k='c:'+c;const all=LS.get(k,{});const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);all[id]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve(id)},
  del(c,id){const k='c:'+c;const all=LS.get(k,{});delete all[id];LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()},
@@ -1324,37 +1325,57 @@ document.addEventListener('change',ev=>{if(ev.target.id==='ptgon'&&PE){keepPE();
 
 
 // ---------- перенос данных ----------
-const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes','mods','weights'];
-let EXP='';
-async function saveExport(){const fn='kuhnya-'+todayKey()+'.json';
+const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes','mods','weights','favs','products','pantry'];
+const GCOLLS=['book','shared','sharedProducts','pending'];
+const COLLN={settings:'настройки и люди',variants:'варианты блюд',prices:'цены и названия продуктов',cookdays:'дни готовки',plans:'планы недель',shop:'списки покупок',log:'записи дневника',custom:'быстрые записи',recipes:'свои рецепты',mods:'правки общих блюд под кухню',weights:'записи веса',favs:'избранное',products:'свои продукты',pantry:'что есть дома',book:'правки общей книги',shared:'рецепты общей книги',sharedProducts:'общие продукты',pending:'на одобрении'};
+let EXP='',EXPN='';
+const expName=()=>{const d=new Date(),z=n=>String(n).padStart(2,'0');return 'kuhnya-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes())+'.json'};
+function dlBlob(fn){const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
+async function saveExport(){const fn=EXPN||expName();
  if(!S.fb&&window.claude&&window.claude.use){try{const dl=await window.claude.use('downloads');if(dl){await dl.save({filename:fn,data:EXP});return}}catch(e){toast('Не сохранилось — скопируйте текст');return}}
- const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
-function readColl(c){return new Promise(res=>{let done=false,u=null;const t=setTimeout(()=>{if(!done){done=true;res([])}},15000);u=ks.watchQ(c,null,null,a=>{if(done)return;done=true;clearTimeout(t);res(a);setTimeout(()=>{try{u&&u()}catch(e){}},0)})})}
+ dlBlob(fn)}
+// читает всю коллекцию; null — если прочитать не вышло
+async function readPath(path){
+ if(store===Local)return null;
+ try{const snap=await DB.collection(path).get();return snap.docs.map(d=>Object.assign({id:d.id},d.data()))}catch(e){console.warn('export',path,e);return null}}
 function localDump(){const out={};const add=(c,id,o)=>{(out[c]=out[c]||{})[id]=o};
  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith('k2:'))continue;let v;try{v=JSON.parse(localStorage.getItem(k))}catch(e){continue}
   let m=k.match(/^k2:d:([^/]+)\/(.+)$/);if(m&&v){add(m[1],m[2],v);continue}
   m=k.match(/^k2:c:(.+)$/);if(m&&v&&typeof v==='object')for(const id in v)add(m[1],id,v[id])}
  return out}
+const toMap=a=>{const o={};a.forEach(x=>{const y=Object.assign({},x);delete y.id;o[x.id]=y});return o};
+const cnt=o=>Object.values(o||{}).reduce((t,x)=>t+Object.keys(x).length,0);
 async function doExport(){
  toast('Собираю данные…');
- let data={};
- if(store===Local)data=localDump();
- else for(const c of COLLS){const a=await readColl(c);if(a.length){data[c]={};a.forEach(o=>{const x=Object.assign({},o);delete x.id;data[c][o.id]=x})}}
- const n=Object.values(data).reduce((t,o)=>t+Object.keys(o).length,0);
- EXP=JSON.stringify({app:'kuhnya',v:2,at:new Date().toISOString(),data});
- openSheet(()=>`<h2>Выгрузка</h2><p class="note">Записей: ${n}. Сохраните файл или скопируйте текст целиком — потом загрузите его в другой версии приложения кнопкой «Загрузить».</p>
+ let data={},global={};const failed=[];
+ if(store===Local){const all=localDump();for(const c in all)(GCOLLS.includes(c)?global:data)[c]=all[c]}
+ else{
+  for(const c of COLLS){const a=await readPath(kp(c));if(a===null){failed.push(COLLN[c]||c);continue}if(a.length)data[c]=toMap(a)}
+  const gl=GCOLLS.filter(c=>c!=='pending'||isAdmin());
+  for(const c of gl){const a=await readPath(c);if(a===null){failed.push(COLLN[c]||c);continue}if(a.length)global[c]=toMap(a)}}
+ const n=cnt(data)+cnt(global);
+ EXPN=expName();
+ EXP=JSON.stringify({app:'kuhnya',v:3,at:new Date().toISOString(),kitchen:{id:S.kid||null,name:kTitle()},by:S.user||null,data,global});
+ const rows=[...Object.entries(data),...Object.entries(global)].map(([c,o])=>`<div class="arow"><span>${esc(COLLN[c]||c)}</span><span class="note">${Object.keys(o).length}</span></div>`).join('');
+ openSheet(()=>`<h2>Выгрузка</h2><p class="note">Кухня «${esc(kTitle())}», всего записей: ${n}. Файл: ${esc(EXPN)}</p>
+ ${failed.length?`<p class="note" style="color:var(--tom,#d9472b)"><b>Не всё удалось прочитать:</b> ${esc(failed.join(', '))}. Проверьте интернет (VPN) и выгрузите ещё раз.</p>`:''}
+ <div style="margin:8px 0 12px">${rows}</div>
  <div class="row2"><button class="btn pri" data-act="dl" style="justify-content:center">Скачать файл</button><button class="btn" data-act="cp" style="justify-content:center">Скопировать текст</button></div>
- <textarea id="expta" readonly style="width:100%;height:140px;margin-top:10px;font:12px/1.3 monospace">${esc(EXP)}</textarea>`)}
-function importView(){return `<h2>Загрузить данные</h2><p class="note">Выберите файл выгрузки или вставьте его текст. Совпадающие записи заменятся, остальное останется.</p>
+ <textarea id="expta" readonly style="width:100%;height:120px;margin-top:10px;font:12px/1.3 monospace">${esc(EXP)}</textarea>`)}
+function importView(){return `<h2>Загрузить данные</h2><p class="note">Выберите файл выгрузки или вставьте его текст. Совпадающие записи заменятся, остальное останется. Данные попадут в кухню «${esc(kTitle())}».${isAdmin()||store===Local?' Общая книга рецептов из файла тоже восстановится.':''}</p>
  <input type="file" id="impf" accept=".json,application/json,text/plain" style="margin:6px 0 10px">
  <textarea id="impta" placeholder="…или вставьте текст выгрузки сюда" style="width:100%;height:120px;font:12px/1.3 monospace"></textarea>
  <button class="btn pri" data-act="doimp" style="width:100%;justify-content:center;margin-top:10px">Загрузить</button>`}
 async function doImport(txt){
  let o;try{o=JSON.parse(txt)}catch(e){toast('Не похоже на файл выгрузки');return}
  if(!o||o.app!=='kuhnya'||!o.data){toast('Не похоже на файл выгрузки');return}
- const jobs=[];for(const c in o.data){if(!COLLS.includes(c))continue;for(const id in o.data[c])jobs.push(ks.setDoc(c+'/'+id,o.data[c][id]))}
- toast('Загружаю…');await Promise.all(jobs);closeSheet();
- if(store===Local)subscribeAll();render();toast('Загружено записей: '+jobs.length)}
+ const jobs=[];let skipped=0;
+ for(const c in o.data){if(!COLLS.includes(c))continue;for(const id in o.data[c])jobs.push(ks.setDoc(c+'/'+id,o.data[c][id]))}
+ const canG=isAdmin()||store===Local;
+ for(const c in (o.global||{})){if(!GCOLLS.includes(c))continue;for(const id in o.global[c]){if(canG)jobs.push(store.setDoc(c+'/'+id,o.global[c][id]));else skipped++}}
+ toast('Загружаю…');const res=await Promise.allSettled(jobs);const bad=res.filter(r=>r.status==='rejected').length;closeSheet();
+ if(store===Local)subscribeAll();render();
+ toast('Загружено записей: '+(jobs.length-bad)+(bad?', не записалось: '+bad:'')+(skipped?', общую книгу восстанавливает модератор':''))}
 document.addEventListener('change',ev=>{if(ev.target.id==='impf'&&ev.target.files[0]){const r=new FileReader();r.onload=()=>{$('#impta').value=r.result};r.readAsText(ev.target.files[0])}});
 
 // ---------- свои и общие продукты ----------
@@ -1562,7 +1583,7 @@ document.addEventListener('click',ev=>{
  else if(a==='accdel'){const v=t.dataset.e;saveAccess((S.access||[]).filter(x=>x!==v)).then(()=>toast('Доступ закрыт: '+v,()=>saveAccess([...(S.access||[]),v])))}
  else if(a==='importv'){openSheet(importView)}
  else if(a==='dl'){saveExport()}
- else if(a==='dl0'){const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download='kuhnya-'+todayKey()+'.json';document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
+ else if(a==='dl0'){dlBlob(EXPN||expName())}
  else if(a==='cp'){const ta=$('#expta');ta.select();try{navigator.clipboard.writeText(ta.value).then(()=>toast('Скопировано'),()=>{document.execCommand('copy');toast('Скопировано')})}catch(e){document.execCommand('copy');toast('Скопировано')}}
  else if(a==='doimp'){doImport($('#impta').value)}
  else if(a==='logout'){closeSheet();firebase.auth().signOut()}
