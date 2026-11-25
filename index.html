@@ -631,6 +631,7 @@ function subscribeAll(){
  unsubs.push(store.watchDoc('variants/main',d=>{S.var=JSON.parse(JSON.stringify((d&&d.v)||{}));VAR=S.var;render()}));
  unsubs.push(store.watchDoc('prices/main',d=>{S.prices=JSON.parse(JSON.stringify((d&&d.p)||{}));render()}));
  unsubs.push(store.watchDoc('cookdays/main',d=>{S.cook=JSON.parse(JSON.stringify((d&&d.d)||{}));render()}));
+ if(S.fb)unsubs.push(store.watchDoc('access/main',d=>{S.access=((d&&d.emails)||[]).slice();if(sheetOpen&&sheetRender===settingsView)refreshSheet()}));
  subscribeWeek();
 }
 let wkUnsubs=[];
@@ -994,8 +995,19 @@ function settingsView(){const c=cfg();const row=w=>`<h3 style="margin:16px 0 8px
  ${S.fb?`<div class="eye" style="margin-top:16px"><b>Общая база.</b> ${S.user?'Вы вошли как '+esc(S.user)+'.':''} Всё сохраняется в вашу базу Firebase и сразу видно на обоих телефонах.</div>`:`<div class="eye" style="margin-top:16px"><b>Как пользоваться вдвоём.</b> Владелец открывает меню «Поделиться» у этого приложения в Claude и приглашает Кристину с доступом «Участник» или «Редактор». Тогда у вас общие отметки, дневник и покупки. ${S.mode==='db'?'Общая база подключена.':'Сейчас общая база не подключена — всё хранится на этом телефоне.'}</div>`}
  <h3 style="margin:16px 0 8px">Перенос данных</h3><p class="note">Все планы, покупки, дневник, свои рецепты, цены и календарь — одним файлом. Выгрузите здесь и загрузите в другой версии приложения.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
+ ${S.fb?accessView():''}
  ${S.fb?'<button class="btn" data-act="logout" style="width:100%;justify-content:center;margin-top:10px">Выйти</button>':''}`}
 
+
+// ---------- кто имеет доступ ----------
+const OWNERS=()=>(window.FB_OWNERS||[]).map(x=>x.toLowerCase());
+const isOwner=()=>!!S.user&&OWNERS().includes(String(S.user).toLowerCase());
+function accessView(){const own=isOwner();const list=S.access||[];
+ const row=(e,del)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--ink) 10%,transparent)"><span style="flex:1;word-break:break-all">${esc(e)}</span>${del?`<button class="btn" data-act="accdel" data-e="${esc(e)}" aria-label="Убрать доступ" style="padding:4px 10px">✕</button>`:'<span class="note">хозяин</span>'}</div>`;
+ return `<h3 style="margin:16px 0 8px">Кто имеет доступ</h3><p class="note">Человек из списка входит кнопкой «Войти через Google» своим аккаунтом и видит всё то же, что и вы.${own?'':' Менять список могут только хозяева.'}</p>
+ ${OWNERS().map(e=>row(e,false)).join('')}${list.map(e=>row(e,own)).join('')}
+ ${own?`<div class="row2" style="margin-top:10px;grid-template-columns:1fr auto"><input id="accin" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="accadd">Добавить</button></div>`:''}`}
+function saveAccess(list){S.access=list;refreshSheet();return store.setDoc('access/main',{emails:list})}
 
 // ---------- перенос данных ----------
 const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes'];
@@ -1098,6 +1110,10 @@ document.addEventListener('click',ev=>{
  else if(a==='manual')openSheet(manualView);
  else if(a==='mdone'){const name=($('#mn').value||'Без названия').trim().slice(0,80);const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const m=[num('#mk'),num('#mp'),num('#mf'),num('#mc')];if(!m[0]){$('#mk').focus();return}addLog(name,m,'вручную');if($('#msave').checked)store.add('custom',{label:name,kcal:m[0],p:m[1],f:m[2],c:m[3]});closeSheet()}
  else if(a==='export'){doExport()}
+ else if(a==='accadd'){const v=($('#accin').value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}
+  if(OWNERS().includes(v)||(S.access||[]).includes(v)){toast('Эта почта уже в списке');return}
+  saveAccess([...(S.access||[]),v]).then(()=>toast('Доступ открыт: '+v))}
+ else if(a==='accdel'){const v=t.dataset.e;saveAccess((S.access||[]).filter(x=>x!==v)).then(()=>toast('Доступ закрыт: '+v,()=>saveAccess([...(S.access||[]),v])))}
  else if(a==='importv'){openSheet(importView)}
  else if(a==='dl'){saveExport()}
  else if(a==='dl0'){const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download='kuhnya-'+todayKey()+'.json';document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
@@ -1116,9 +1132,7 @@ subscribeAll();render();
 function loginView(err){return `<div style="max-width:360px;margin:12vh auto 0;padding:0 20px"><h1 style="font-family:Unbounded,system-ui;font-size:26px;margin:0 0 6px">Кухня на двоих</h1><p class="note" style="margin:0 0 18px">Войдите своим Google-аккаунтом.</p>
  <button class="btn pri" data-act="glogin" type="button" style="width:100%;justify-content:center;gap:10px"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Войти через Google</button>
  <div id="lerr" style="color:#c0392b;min-height:20px;font-size:14px;margin-top:10px">${err||''}</div>
- <details style="margin-top:14px"><summary class="note" style="cursor:pointer">Войти по почте и паролю</summary>
- <form id="lf" style="margin-top:10px"><div class="field">Почта<input id="le" type="email" autocomplete="username" required></div><div class="field">Пароль<input id="lp" type="password" autocomplete="current-password" required></div>
- <button class="btn" type="submit" style="width:100%;justify-content:center">Войти</button></form></details></div>`}
+ </div>`}
 const authErr=e=>{const c=e&&e.code||'';return /popup-closed|cancelled-popup/.test(c)?'':/network/.test(c)?'Нет связи с Firebase. VPN включён?':/invalid|wrong|user-not-found/.test(c)?'Неверная почта или пароль':/too-many/.test(c)?'Слишком много попыток, подождите минуту':/unauthorized-domain/.test(c)?'Этот адрес сайта не разрешён в настройках Firebase':'Не получилось войти: '+c};
 function gLogin(){const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});const el=$('#lerr');if(el)el.textContent='';
  firebase.auth().signInWithPopup(p).catch(e=>{const c=e&&e.code||'';if(/popup-blocked|operation-not-supported/.test(c))return firebase.auth().signInWithRedirect(p);const t=authErr(e);if(el)el.textContent=t})}
