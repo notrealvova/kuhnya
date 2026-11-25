@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Кухня на двоих</title>
+<title>Кухня</title>
 <meta name="theme-color" content="#7a1f2b">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -37,8 +37,8 @@ header.top{background:var(--basil);color:#f3f7f4;padding:14px 0 18px;border-radi
 .toprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .toprow h1{flex:1;color:#fff}
 .iconbtn{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;font-size:20px;display:grid;place-items:center}
-.who{display:flex;background:rgba(0,0,0,.22);border-radius:14px;padding:4px;margin-top:12px}
-.who button{flex:1;height:40px;border-radius:11px;color:#d6e6dc;font-weight:700}
+.who{display:flex;background:rgba(0,0,0,.22);border-radius:14px;padding:4px;margin-top:12px;overflow-x:auto;scrollbar-width:none}
+.who button{flex:1 0 auto;min-width:96px;padding:0 12px;height:40px;border-radius:11px;color:#d6e6dc;font-weight:700;white-space:nowrap}
 .who button[aria-pressed=true]{background:#fff;color:var(--basil)}
 .weeknav{display:flex;align-items:center;gap:8px;margin-top:12px}
 .weeknav .lbl{flex:1;text-align:center;font-weight:700}
@@ -136,10 +136,6 @@ ol.steps{padding-left:22px;margin:8px 0}ol.steps li{margin-bottom:8px}
 .pp{border-top:5px solid var(--me)}.pp h3 span:first-child{color:var(--meink)}
 .pp .bar{background:var(--mesoft)}.pp .bar i{background:var(--me)}.pp .bar.over i{background:var(--tom)}
 .pp .hint{background:var(--mesoft)}
-.who button[data-w=v][aria-pressed=true]{background:#7a1f2b;color:#fff}
-.who button[data-w=k][aria-pressed=true]{background:#f5c63b;color:#3d2c00}
-.who button[data-w=v]::before,.who button[data-w=k]::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:1px}
-.who button[data-w=v]::before{background:#a0503a}.who button[data-w=k]::before{background:#f5c63b}
 .mebox{border-left:5px solid var(--me)}
 .day[aria-pressed=true]{background:var(--me);border-color:var(--me);color:light-dark(#fff,#111)}
 .pk .day[aria-pressed=true]{color:#3d2c00}
@@ -191,11 +187,29 @@ ol.steps{padding-left:22px;margin:8px 0}ol.steps li{margin-bottom:8px}
 .ghost{position:fixed;pointer-events:none;z-index:30;transform:translate(-50%,-60%) rotate(-3deg);box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:.95}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 @media(max-width:420px){.row4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v2: цвета людей задаются через --pc/--pcon */
+.who button[aria-pressed=true]{background:var(--pc,#fff);color:var(--pcon,var(--basil))}
+.who button::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:1px;background:var(--pc)}
+.who button[aria-pressed=true]::before{background:var(--pcon)}
+.dot{background:var(--pc)}
+.cooktag{background:var(--pc);color:var(--pcon)}
+.mday.c{background:var(--pc);border-color:var(--pc);color:var(--pcon)}
+.dz.cday{background:var(--pc);border:2px solid var(--pc)}.dz.cday h4{color:var(--pcon)}.dz.cday .vbtn{background:var(--pcon);color:var(--pc);border:0}
+.dz.cday .dk,.dz.cday .empty{color:var(--pcon);opacity:.85}.dz.cday .dk .dot{box-shadow:0 0 0 1.5px var(--pcon)}.dz.cday.today{outline:3px solid var(--basil2);outline-offset:2px}
+.day[aria-pressed=true]{color:var(--pcon,#fff)}
+.ritem .dot{margin-right:8px}
+.arow{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--ink) 10%,transparent)}.arow>span:first-child{flex:1;word-break:break-all}
+.addrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+.addrow input{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 12px;font:inherit}
+.swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent}.swatch[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
+.linkbtn{font-size:13px;font-weight:700;color:var(--meink);text-decoration:underline;text-underline-offset:3px;min-height:32px}
+label.chip{display:inline-flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
- <div class="toprow"><h1>Кухня на двоих</h1><button class="iconbtn" data-act="settings" aria-label="Настройки">⚙</button></div>
+ <div class="toprow"><h1 id="kname">Кухня</h1><button class="iconbtn" data-act="settings" aria-label="Настройки">⚙</button></div>
  <div class="who" id="who"></div>
  <div class="weeknav"><button class="iconbtn" data-act="wk" data-d="-1" aria-label="Прошлая неделя">‹</button><div class="lbl" id="wklbl"></div><button class="iconbtn" data-act="wk" data-d="1" aria-label="Следующая неделя">›</button></div>
  <div id="banner"></div>
@@ -508,7 +522,11 @@ const DEFAULTS = {names:{v:'Вова',k:'Кристина'},targets:{v:[2250,165
 // ===== Расчёты (общие для приложения и проверки) =====
 const ALL = Object.assign({}, ING, EXTRA);
 const D = Object.fromEntries(DISHES.map(d=>[d.id,d]));
-let KF=0.5; // порция Кристины от порции Вовы
+// Люди кухни: f — доля от стандартной порции, meals — какие приёмы пищи едят
+let PEOPLE=[{id:'v',f:1,meals:{b:1,l:1,d:1}},{id:'k',f:0.5,meals:{b:1,l:1,d:1}}];
+const fac=who=>{const p=PEOPLE.find(x=>x.id===who);return p?p.f:1};
+// сумма долей: 'b' — завтраки, 'ld' — обеды/ужины (основное и супы)
+function SUMF(m){return PEOPLE.reduce((t,p)=>{const ml=p.meals||{b:1,l:1,d:1};return t+p.f*(m==='b'?(ml.b?1:0):((ml.l?1:0)+(ml.d?1:0))/2)},0)}
 let VAR={}; // выбранные гарниры/соусы: {dishId:[i,j,...]}
 function choice(d){return (d.opts||[]).map((o,k)=>{const v=(VAR[d.id]||[])[k];return Number.isInteger(v)&&o.c[v]?v:0})}
 function full(d){const base=d.cat==='soup'?d.S:d.H;if(!d.opts)return base;const ch=choice(d);return base.concat(...d.opts.map((o,k)=>o.c[ch[k]][1]))}
@@ -519,7 +537,7 @@ function macros(items, mult=1){
   return t;
 }
 function portion(d, who){ // КБЖУ одной порции
-  const f=who==='k'?KF:1;
+  const f=fac(who);
   if(d.man) return d.man.map(x=>x*f);
   if(d.cat==='bake') return macros(d.B,1/d.pcs);
   return macros(full(d),f);
@@ -528,8 +546,8 @@ function batchItems(d){
   const acc={};
   const add=(arr,m)=>arr.forEach(([id,g])=>acc[id]=(acc[id]||0)+g*m);
   if(d.man) return acc;
-  if(d.cat==='main') add(full(d),BATCH.H*(1+KF));
-  else if(d.cat==='soup') add(full(d),BATCH.S*(1+KF));
+  if(d.cat==='main') add(full(d),BATCH.H*SUMF('ld'));
+  else if(d.cat==='soup') add(full(d),BATCH.S*SUMF('ld'));
   else if(d.cat==='bake') add(d.B,1);
   else add(full(d),1);
   return acc;
@@ -569,10 +587,10 @@ function weekNeed(plan){
   const core=new Set([...plan.m,plan.soup,plan.bake,'ya','bu','to']);const cnt={};
   Object.values(plan.days||{}).flat().forEach(x=>{if(!core.has(x)&&D[x])cnt[x]=(cnt[x]||0)+1});
   for(const id in cnt){const d=D[id];if(d.man)continue;const o={};const c=cnt[id];
-    if(d.cat==='bake')d.B.forEach(([i,g])=>o[i]=g/d.pcs*c*2);else full(d).forEach(([i,g])=>o[i]=(o[i]||0)+g*c*(1+KF));add(o)}
+    if(d.cat==='bake')d.B.forEach(([i,g])=>o[i]=g/d.pcs*c*2);else full(d).forEach(([i,g])=>o[i]=(o[i]||0)+g*c*SUMF('ld'));add(o)}
   add(batchItems(D[plan.soup]));add(batchItems(D[plan.bake]));
-  for(const b in BF_WEEK){const o=batchItems(D[b]);for(const k in o)o[k]*=BF_WEEK[b]*(1+KF);add(o);}
-  add({apple:150*7,mand:150*7});
+  for(const b in BF_WEEK){const o=batchItems(D[b]);for(const k in o)o[k]*=BF_WEEK[b]*SUMF('b');add(o);}
+  const np=PEOPLE.length/2;add({apple:150*7*np,mand:150*7*np});
   return acc;
 }
 
@@ -597,9 +615,37 @@ const todayKey=()=>iso(monday(new Date()));
 const todayIdx=()=>(new Date().getDay()+6)%7;
 
 // ---------- состояние ----------
-const S={who:LS.get('who','v'),tab:LS.get('tab','week'),wk:todayKey(),day:todayIdx(),
+const S={kid:null,kdoc:null,kitchens:null,mods:{},weights:[],shared:[],pending:[],who:LS.get('who','v'),tab:LS.get('tab','week'),wk:todayKey(),day:todayIdx(),
  urec:[],var:{},prices:{},cook:{},mon:null,plan:null,log:[],shop:{got:{},home:{}},settings:null,custom:[],mode:'local',ro:false,mult:1,rf:'all',rq:''};
-const cfg=()=>{const s=S.settings||{};const c={names:Object.assign({},DEFAULTS.names,s.names),targets:Object.assign({},DEFAULTS.targets,s.targets),budget:s.budget||DEFAULTS.budget,kf:s.kf||DEFAULTS.kf};KF=c.kf/100;return c};
+const cfg=()=>{const s=S.settings||{};return {budget:+s.budget||DEFAULTS.budget}};
+// ---------- люди кухни ----------
+const COLORS=['#7a1f2b','#e0a600','#2f7d5b','#2b5ea7','#7a4fb0','#d2691e','#1f8a8a','#c2417a'];
+const ACT=[['sit','Сидячая работа, почти без спорта',1.2],['light','Немного движения, 1–2 тренировки в неделю',1.375],['mid','Спорт 3–5 раз в неделю',1.55],['high','Тяжёлый труд или спорт каждый день',1.725]];
+const GOAL=[['lose','Похудеть',0.85],['keep','Держать вес',1],['gain','Набрать массу',1.12]];
+const REF=2250; // стандартная порция в рецептах рассчитана на ~2250 ккал в день
+const rid=()=>Date.now().toString(36).slice(-4)+Math.random().toString(36).slice(2,6);
+function calcTg(p){
+ if(Array.isArray(p.tg)&&+p.tg[0]>0)return p.tg.map(x=>+x||0);
+ const w=+p.w||70,h=+p.h||170,a=+p.age||30;
+ const bmr=10*w+6.25*h-5*a+(p.sex==='f'?-161:5);
+ const act=(ACT.find(x=>x[0]===p.act)||ACT[1])[2],g=(GOAL.find(x=>x[0]===p.goal)||GOAL[1])[2];
+ const kcal=Math.round(bmr*act*g/10)*10,pr=Math.round(w*(p.goal==='gain'?2:1.9)),fat=Math.round(w*0.95);
+ return [kcal,pr,fat,Math.max(0,Math.round((kcal-pr*4-fat*9)/4))]}
+function legacyPeople(s){
+ const n=Object.assign({},DEFAULTS.names,s.names||{}),T=s.targets||{};
+ const same=(a,b)=>Array.isArray(a)&&a.every((x,i)=>+x===+b[i]);
+ const tg=w=>Array.isArray(T[w])&&!same(T[w],DEFAULTS.targets[w])?T[w].map(Number):null;
+ return [{id:'v',name:n.v,color:'#7a1f2b',sex:'m',age:22,h:187,w:85,act:'light',goal:'lose',meals:{b:1,l:1,d:1},pct:100,tg:tg('v'),email:'vladimirgvadzabiya@gmail.com'},
+  {id:'k',name:n.k,color:'#e0a600',sex:'f',age:23,h:160,w:57,act:'light',goal:'keep',meals:{b:1,l:1,d:1},pct:+s.kf||DEFAULTS.kf,tg:tg('k'),email:'krrkristina@gmail.com'}]}
+function normSettings(d){if(!d)return null;if(Array.isArray(d.people))return d;return {people:legacyPeople(d),budget:+d.budget||DEFAULTS.budget,cookQuick:'v',cookLabel:'Готовит мужчина'}}
+function ppl(){const s=S.settings;const list=(s&&Array.isArray(s.people)&&s.people.length)?s.people:[{id:'me',name:'Я',sex:'m',age:30,h:175,w:75,act:'light',goal:'keep'}];
+ return list.map((p,i)=>{const tg=calcTg(p);const auto=Math.min(1.6,Math.max(0.3,Math.round(tg[0]/REF*20)/20));
+  return Object.assign({},p,{color:p.color||COLORS[i%COLORS.length],meals:p.meals||{b:1,l:1,d:1},tg,auto,f:+p.pct>0?+p.pct/100:auto})})}
+const P=id=>{const a=ppl();return a.find(p=>p.id===id)||a[0]};
+function syncPeople(){PEOPLE=ppl().map(p=>({id:p.id,f:p.f,meals:p.meals}));if(!ppl().some(p=>p.id===S.who)){const me=ppl().find(p=>p.email&&S.user&&p.email.toLowerCase()===S.user.toLowerCase());S.who=(me||ppl()[0]).id}}
+function onColor(hex){const n=parseInt(String(hex).slice(1),16);const r=n>>16,g=n>>8&255,b=n&255;return (0.299*r+0.587*g+0.114*b)>165?'#2b2100':'#fff'}
+const pv=p=>`--me:${p.color};--mesoft:color-mix(in srgb,${p.color} 16%,var(--card));--meink:color-mix(in srgb,${p.color} 78%,var(--ink));--pc:${p.color};--pcon:${onColor(p.color)}`;
+const cookQ=()=>{const s=S.settings||{};return s.cookQuick&&ppl().some(p=>p.id===s.cookQuick)?{id:s.cookQuick,label:s.cookLabel||('Готовит '+P(s.cookQuick).name)}:null};
 const defPlan=wk=>{const t=TEMPLATES[tplFor(wk)];return {tpl:tplFor(wk),m:[...t.m],soup:t.soup,bake:t.bake,cooked:{},days:{}}};
 const plan=()=>S.plan||defPlan(S.wk);
 
@@ -609,46 +655,47 @@ const queue=(p,fn)=>chains[p]=(chains[p]||Promise.resolve()).then(fn).catch(e=>{
 const Local={
  watchDoc(p,cb){const f=()=>cb(LS.get('d:'+p,null));f();(this.l[p]=this.l[p]||[]).push(f);return()=>{this.l[p]=this.l[p].filter(x=>x!==f)}},
  setDoc(p,o){const m=p.match(/^(recipes|log|custom)\/(.+)$/);if(m){const k='c:'+m[1];const all=LS.get(k,{});all[m[2]]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()}LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()},
- watchQ(c,field,val,cb){const k='c:'+c;const f=()=>{const all=LS.get(k,{});cb(Object.entries(all).map(([id,o])=>Object.assign({id},o)).filter(o=>field?o[field]===val:true))};f();(this.l[k]=this.l[k]||[]).push(f);return()=>{(this.l[k]=this.l[k].filter(x=>x!==f))}},
+ watchQ(c,field,val,cb,op){const k='c:'+c;const f=()=>{const all=LS.get(k,{});cb(Object.entries(all).map(([id,o])=>Object.assign({id},o)).filter(o=>!field?true:op==='array-contains'?(o[field]||[]).includes(val):o[field]===val))};f();(this.l[k]=this.l[k]||[]).push(f);return()=>{(this.l[k]=this.l[k].filter(x=>x!==f))}},
  add(c,o){const k='c:'+c;const all=LS.get(k,{});const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);all[id]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve(id)},
  del(c,id){const k='c:'+c;const all=LS.get(k,{});delete all[id];LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()},
  l:{}};
 let DB=null;
-function denied(e){loaded();console.warn(e);if(e&&e.code==='permission-denied'&&S.fb&&S.user){const u=S.user;firebase.auth().signOut().then(()=>showLogin('У аккаунта '+esc(u)+' нет доступа к этой кухне. Войдите своим аккаунтом.'))}}
+function denied(e){loaded();console.warn(e)}
 const Remote={
  watchDoc(p,cb){return DB.doc(p).onSnapshot(s=>{loaded();cb(s.exists?s.data():null)},denied)},
  setDoc(p,o){return queue(p,()=>DB.doc(p).set(JSON.parse(JSON.stringify(o))))},
- watchQ(c,field,val,cb){let q=DB.collection(c);if(field)q=q.where(field,'==',val);return q.onSnapshot(s=>{loaded();cb(s.docs.map(d=>Object.assign({id:d.id},d.data())))},denied)},
+ watchQ(c,field,val,cb,op){let q=DB.collection(c);if(field)q=q.where(field,op||'==',val);return q.onSnapshot(s=>{loaded();cb(s.docs.map(d=>Object.assign({id:d.id},d.data())))},denied)},
  add(c,o){return queue(c+'/+',()=>DB.collection(c).add(JSON.parse(JSON.stringify(o))).then(r=>r.id))},
  del(c,id){return queue(c+'/'+id,()=>DB.doc(c+'/'+id).delete())}};
 let store=Local,unsubs=[],loadTimer=null,stale=false;
 function loaded(){if(loadTimer){clearTimeout(loadTimer);loadTimer=null;stale=false;banner()}}
 function subscribeAll(){
  unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
- unsubs.push(store.watchDoc('settings/main',d=>{S.settings=d;render()}));
- unsubs.push(store.watchQ('custom',null,null,a=>{S.custom=a;render()}));
- unsubs.push(store.watchQ('recipes',null,null,a=>{S.urec=a;loadUserRecipes();render()}));
- unsubs.push(store.watchDoc('variants/main',d=>{S.var=JSON.parse(JSON.stringify((d&&d.v)||{}));VAR=S.var;render()}));
- unsubs.push(store.watchDoc('prices/main',d=>{S.prices=JSON.parse(JSON.stringify((d&&d.p)||{}));render()}));
- unsubs.push(store.watchDoc('cookdays/main',d=>{S.cook=JSON.parse(JSON.stringify((d&&d.d)||{}));render()}));
- if(S.fb)unsubs.push(store.watchDoc('access/main',d=>{S.access=((d&&d.emails)||[]).slice();if(sheetOpen&&sheetRender===settingsView)refreshSheet()}));
+ unsubs.push(ks.watchDoc('settings/main',d=>{S.settings=normSettings(d);syncPeople();render()}));
+ unsubs.push(ks.watchQ('custom',null,null,a=>{S.custom=a;render()}));
+ unsubs.push(ks.watchQ('recipes',null,null,a=>{S.urec=a;loadUserRecipes();render()}));
+ unsubs.push(ks.watchDoc('variants/main',d=>{S.var=JSON.parse(JSON.stringify((d&&d.v)||{}));VAR=S.var;render()}));
+ unsubs.push(ks.watchDoc('prices/main',d=>{S.prices=JSON.parse(JSON.stringify((d&&d.p)||{}));render()}));
+ unsubs.push(ks.watchDoc('cookdays/main',d=>{S.cook=JSON.parse(JSON.stringify((d&&d.d)||{}));render()}));
+ unsubs.push(ks.watchQ('mods',null,null,a=>{S.mods=Object.fromEntries(a.map(m=>[m.id,m]));applyMods();render()}));
+ unsubs.push(ks.watchQ('weights',null,null,a=>{S.weights=a;if(sheetOpen)refreshSheet()}));
  subscribeWeek();
 }
 let wkUnsubs=[];
 function subscribeWeek(){
  wkUnsubs.forEach(u=>{try{u()}catch(e){}});wkUnsubs=[];
  const wk=S.wk;S.plan=null;S.log=[];S.shop={got:{},home:{},extra:[],qty:{}};
- wkUnsubs.push(store.watchDoc('plans/'+wk,d=>{if(S.wk===wk){S.plan=d;render()}}));
- wkUnsubs.push(store.watchDoc('shop/'+wk,d=>{if(S.wk===wk){S.shop=JSON.parse(JSON.stringify(Object.assign({got:{},home:{},extra:[],qty:{}},d||{})));render()}}));
- wkUnsubs.push(store.watchQ('log','wk',wk,a=>{if(S.wk===wk){S.log=a.sort((x,y)=>(x.ts||0)-(y.ts||0));render()}}));
+ wkUnsubs.push(ks.watchDoc('plans/'+wk,d=>{if(S.wk===wk){S.plan=d;render()}}));
+ wkUnsubs.push(ks.watchDoc('shop/'+wk,d=>{if(S.wk===wk){S.shop=JSON.parse(JSON.stringify(Object.assign({got:{},home:{},extra:[],qty:{}},d||{})));render()}}));
+ wkUnsubs.push(ks.watchQ('log','wk',wk,a=>{if(S.wk===wk){S.log=a.sort((x,y)=>(x.ts||0)-(y.ts||0));render()}}));
 }
-function savePlan(p){S.plan=p;render();return store.setDoc('plans/'+S.wk,p)}
-function saveShop(){render();return store.setDoc('shop/'+S.wk,S.shop)}
+function savePlan(p){S.plan=p;render();return ks.setDoc('plans/'+S.wk,p)}
+function saveShop(){render();return ks.setDoc('shop/'+S.wk,S.shop)}
 
 // ---------- расчёты для экрана ----------
 const sum=(list)=>list.reduce((t,e)=>[t[0]+(+e.kcal||0),t[1]+(+e.p||0),t[2]+(+e.f||0),t[3]+(+e.c||0)],[0,0,0,0]);
 function weekProgress(who){
- const T=cfg().targets[who].map(x=>x*7);
+ const T=P(who).tg.map(x=>x*7);
  const mine=S.log.filter(e=>e.who===who);
  const eaten=sum(mine);
  const cur=S.wk===todayKey();const ti=cur?todayIdx():null;
@@ -660,8 +707,8 @@ function pct(a,b){return Math.max(0,Math.min(100,b?a/b*100:0))}
 
 // ---------- шапка ----------
 function renderTop(){
- const n=cfg().names;
- $('#who').innerHTML=['v','k'].map(w=>`<button data-act="who" data-w="${w}" aria-pressed="${S.who===w}">${w===S.who?'Я — ':''}${esc(n[w])}</button>`).join('');
+ $('#who').innerHTML=ppl().map(p=>`<button data-act="who" data-w="${esc(p.id)}" style="${pv(p)}" aria-pressed="${S.who===p.id}">${p.id===S.who?'Я — ':''}${esc(p.name)}</button>`).join('');
+ $('#kname').textContent=(S.kdoc&&S.kdoc.name)||'Кухня';document.title=(S.kdoc&&S.kdoc.name)||'Кухня';
  const m=parse(S.wk),e=addDays(m,6);
  const lbl=m.getMonth()===e.getMonth()?`${m.getDate()}–${e.getDate()} ${MON[e.getMonth()]}`:`${m.getDate()} ${MON[m.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]}`;
  $('#wklbl').innerHTML=`${lbl}<small>${S.wk===todayKey()?'эта неделя · ':''}набор ${plan().tpl+1} из 4</small>`;
@@ -678,10 +725,10 @@ function banner(){
 
 // ---------- экраны ----------
 function progCard(who){
- const n=cfg().names[who];const {T,eaten,hint}=weekProgress(who);
+ const pp=P(who),n=pp.name;const {T,eaten,hint}=weekProgress(who);
  const over=eaten[0]>T[0]*1.03;
  const m=['Белки','Жиры','Углеводы'].map((l,i)=>`<div>${l} ${R(eaten[i+1])}/${R(T[i+1])} г<div class="bar"><i style="width:${pct(eaten[i+1],T[i+1])}%"></i></div></div>`).join('');
- return `<div class="card pp p${who}"><h3><span>${esc(n)}</span><span class="note">неделя</span></h3>
+ return `<div class="card pp" style="${pv(pp)}"><h3><span>${esc(n)}</span><button class="linkbtn" data-act="person" data-id="${esc(pp.id)}">${pp.w?String(pp.w).replace('.',',')+' кг · ':''}профиль</button></h3>
  <div class="big">${fmt(eaten[0])} <small>из ${fmt(T[0])} ккал</small></div>
  <div class="bar${over?' over':''}"><i style="width:${pct(eaten[0],T[0])}%"></i></div>
  <div class="mac">${m}</div>
@@ -689,12 +736,12 @@ function progCard(who){
 }
 const SLOT=[['m0','Блюдо 1'],['m1','Блюдо 2'],['m2','Блюдо 3'],['m3','Блюдо 4'],['soup','Суп'],['bake','Выпечка']];
 const slotDish=(p,s)=>D[s==='soup'?p.soup:s==='bake'?p.bake:p.m[+s[1]]];
-function srcTag(d){if(d.src==='kris')return `<span class="tag kris">Кристинины</span>`;if(d.src==='user')return '<span class="tag user">свой рецепт</span>';if(d.cook==='v')return `<span class="tag vova">готовит ${esc(cfg().names.v)}</span>`;return d.cat==='soup'?'<span class="tag soup">суп · из ТикТока</span>':d.src==='tt'?'<span class="tag tt">из ТикТока</span>':'<span class="tag">наше</span>'}
+function srcTag(d){if(d.src==='user')return '<span class="tag user">свой рецепт</span>';if(d.src==='shared')return '<span class="tag user">из общей книги</span>';if(d.mod)return '<span class="tag user">изменено у нас</span>';if(d.cook&&ppl().some(p=>p.id===d.cook)){const c=P(d.cook);return `<span class="tag" style="background:${c.color};color:${onColor(c.color)}">готовит ${esc(c.name)}</span>`}return d.cat==='soup'?'<span class="tag soup">суп · из ТикТока</span>':d.src==='tt'?'<span class="tag tt">из ТикТока</span>':'<span class="tag">наше</span>'}
 function kbLine(d){
  if(d.cat==='bake'){const k=portion(d);return `1 шт ≈ <b>${R(k[0])}</b> ккал · ${d.pcs} шт в партии`}
- if(d.cat==='soup'){const v=portion(d,'v'),k=portion(d,'k'),n=cfg().names;return `${esc(n.v)} <b>${R(v[0])}</b> ккал · ${esc(n.k)} <b>${R(k[0])}</b> ккал · хватит на 2 ужина`}
- const v=portion(d,'v'),k=portion(d,'k'),n=cfg().names;
- return `${esc(n.v)} <b>${R(v[0])}</b> ккал · ${esc(n.k)} <b>${R(k[0])}</b> ккал`;
+ const line=ppl().map(p=>`${esc(p.name)} <b>${R(portion(d,p.id)[0])}</b>`).join(' · ')+' ккал';
+ if(d.cat==='soup')return line+' · хватит на 2 ужина';
+ return line;
 }
 function renderWeek(){
  const p=plan();
@@ -705,10 +752,10 @@ function renderWeek(){
   <button class="btn sm ${c?'done':''}" data-act="cook" data-s="${s}" aria-pressed="${c}">${c?'✓ Приготовлено':'Приготовила'}</button></div></div>`}).join('');
  const done=SLOT.filter(([s])=>p.cooked[s]).length;
  const tv=p.m.includes('teri')?'':(()=>{const d=D.teri;return `<div class="card dish"><div class="tags">${srcTag(d)}<span class="tag">${esc(d.time)}</span><span class="tag">есть каждую неделю</span></div><h3>${esc(d.n)}</h3><div class="kb">${kbLine(d)}</div><p class="note" style="margin:0">В покупки попадает, когда поставишь в план.</p><div class="acts"><button class="btn sm" data-act="recipe" data-id="teri">Рецепт</button></div></div>`})();
- return `<section><div class="prog">${progCard('v')}${progCard('k')}</div></section>
+ return `<section><div class="prog">${ppl().map(p=>progCard(p.id)).join('')}</div></section>
  ${renderPlanner()}
  <section><div class="sh"><h2>Набор недели</h2><p>${done} из 6 готово</p></div>
- <p class="note" style="margin:-4px 2px 12px">Порядок и дни — как захочется. Одной готовки основного блюда хватает на 3 обеда-ужина обоим: Вове порция побольше, Кристине поменьше. Не хочется блюдо — жми «Заменить», выбирай похожее по калориям.</p>
+ <p class="note" style="margin:-4px 2px 12px">Порядок и дни — как захочется. Одной готовки основного блюда хватает на 3 обеда-ужина всей кухне — каждому своя порция по его норме. Не хочется блюдо — жми «Заменить», выбирай похожее по калориям.</p>
  <div class="grid">${cards}${tv}</div>
  <div class="acts" style="margin-top:12px"><button class="btn" data-act="tplpick">Взять другой набор целиком</button></div></section>
  <section><div class="sh"><h2>Завтраки</h2><p>любой в любой день</p></div><div class="grid">${['ya','bu','to'].map(id=>{const d=D[id];return `<div class="card dish"><h3>${esc(d.n)}</h3><div class="kb">${kbLine(d)}</div><div class="acts"><button class="btn sm" data-act="recipe" data-id="${id}">Рецепт</button></div></div>`}).join('')}</div></section>`;
@@ -723,8 +770,11 @@ function renderPlanner(){
  const pool=ids.map(id=>{const d=D[id],c=cnt(id);return `<button class="pc ${pcCls(d)}" data-drag="${id}" data-from="pool" aria-pressed="${S.pick===id}">${esc(short(d))}${c?` <em>×${c}</em>`:''}</button>`}).join('');
  const cal=DOW.map((dn,i)=>{const list=days[i]||[];
   const dt=dayTotals(list);
-  const dk=iso(addDays(m,i)),vd=S.cook[dk]==='v';
-  return `<div class="dz${vd?' vday':''}${cur&&i===ti?' today':''}${S.pick?' target':''}" data-drop="${i}"><div class="dzh"><h4>${dn} ${addDays(m,i).getDate()}${S.cook[dk]==='k'?cookTag(dk):''}</h4><button class="vbtn" data-act="cookv" data-date="${dk}" aria-pressed="${vd}">${vd?'✓ Готовит мужчина':'Готовит мужчина?'}</button></div>${list.map((id,j)=>D[id]?`<span class="pc ${pcCls(D[id])}" data-drag="${id}" data-from="${i}:${j}">${esc(short(D[id]))}<button data-act="unplace" data-i="${i}" data-j="${j}" aria-label="Убрать">×</button></span>`:'').join('')||'<span class="empty">свободно</span>'}${list.length?`<div class="dk"><span><i class="dot v"></i>${fmt(dt.v[0])}</span><span><i class="dot k"></i>${fmt(dt.k[0])} ккал</span></div>`:''}</div>`}).join('');
+  const dk=iso(addDays(m,i)),cw=S.cook[dk]&&ppl().some(p=>p.id===S.cook[dk])?P(S.cook[dk]):null,q=cookQ();
+  const colored=cw&&(!q||q.id===cw.id);
+  const btn=q?`<button class="vbtn" data-act="cookv" data-date="${dk}" aria-pressed="${!!(cw&&cw.id===q.id)}">${cw&&cw.id===q.id?'✓ '+esc(q.label):esc(q.label)+'?'}</button>`
+   :`<button class="vbtn" data-act="cookv" data-date="${dk}" aria-pressed="${!!cw}">${cw?'✓ Готовит '+esc(cw.name):'Кто готовит?'}</button>`;
+  return `<div class="dz${colored?' cday':''}${cur&&i===ti?' today':''}${S.pick?' target':''}" data-drop="${i}"${colored?` style="${pv(cw)}"`:''}><div class="dzh"><h4>${dn} ${addDays(m,i).getDate()}${cw&&!colored?cookTag(dk):''}</h4>${btn}</div>${list.map((id,j)=>D[id]?`<span class="pc ${pcCls(D[id])}" data-drag="${id}" data-from="${i}:${j}">${esc(short(D[id]))}<button data-act="unplace" data-i="${i}" data-j="${j}" aria-label="Убрать">×</button></span>`:'').join('')||'<span class="empty">свободно</span>'}${list.length?`<div class="dk">${ppl().map(p=>`<span style="${pv(p)}"><i class="dot"></i>${fmt(dt[p.id][0])}</span>`).join('')}<span>ккал</span></div>`:''}</div>`}).join('');
  return `<section><div class="sh"><h2>План недели</h2><button class="btn sm" data-act="month">Месяц: кто готовит</button></div>
  <p class="note" style="margin:-4px 2px 10px">${S.pick?'<b>Теперь нажми на день</b>, куда поставить «'+esc(short(D[S.pick]))+'». ':'Перетащи блюдо на день или нажми блюдо, а потом день. '}Одно блюдо можно поставить на несколько дней — например, готовим в понедельник, доедаем во вторник. План не обязательный: можно двигать как угодно.</p>
  <div class="pool" style="margin-bottom:12px">${pool}</div>
@@ -733,38 +783,36 @@ function renderPlanner(){
  ${Object.values(days).flat().length?'<div class="acts" style="margin-top:10px"><button class="btn sm" data-act="clearplan">Очистить план</button></div>':''}</section>`;
 }
 
-function dayTotals(list){const v=[0,0,0,0],k=[0,0,0,0];const ad=(t,a,m)=>a.forEach((x,i)=>t[i]+=x*m);
- for(const id of list){const d=D[id];if(!d)continue;
-  ad(v,portion(d,'v'),1);ad(k,portion(d,'k'),1)}
- return {v,k}}
+function dayTotals(list){const t={};ppl().forEach(p=>t[p.id]=[0,0,0,0]);
+ for(const id of list){const d=D[id];if(!d)continue;for(const p of ppl())portion(d,p.id).forEach((x,i)=>t[p.id][i]+=x)}
+ return t}
 function planSummary(days){
- const tot={v:[0,0,0,0],k:[0,0,0,0]};let n=0;
- for(const i in days){const t=dayTotals(days[i]);n+=days[i].length;for(const w of ['v','k'])t[w].forEach((x,j)=>tot[w][j]+=x)}
+ const tot={};ppl().forEach(p=>tot[p.id]=[0,0,0,0]);let n=0;
+ for(const i in days){const t=dayTotals(days[i]);n+=days[i].length;for(const w in t)t[w].forEach((x,j)=>tot[w][j]+=x)}
  if(!n)return '';
- const c=cfg();
- const card=w=>{const T=c.targets[w].map(x=>x*7),t=tot[w];const diff=t[0]-T[0];const avgMain=650*(w==='v'?1:KF);
+ const card=p=>{const T=p.tg.map(x=>x*7),t=tot[p.id];const diff=t[0]-T[0];const avgMain=650*p.f;
   const adv=Math.abs(diff)<T[0]*0.05?'По плану неделя почти точно в норме.':diff<0?`Не хватает ≈ ${fmt(-diff)} ккал — это примерно ${Math.max(1,Math.round(-diff/avgMain))} ${plural(Math.max(1,Math.round(-diff/avgMain)),['порция','порции','порций'])} основного.`:`Перебор ≈ ${fmt(diff)} ккал — можно убрать ${Math.max(1,Math.round(diff/avgMain))} ${plural(Math.max(1,Math.round(diff/avgMain)),['порцию','порции','порций'])} или выпечку.`;
-  return `<div class="card p${w}"><h3 style="color:var(--meink);margin-bottom:6px">${esc(c.names[w])} по плану</h3>
+  return `<div class="card pp" style="${pv(p)}"><h3 style="color:var(--meink);margin-bottom:6px">${esc(p.name)} по плану</h3>
   <div class="row"><span>Калории за неделю</span><b>${fmt(t[0])} / ${fmt(T[0])}</b></div>
   <div class="row"><span>В среднем в день</span><b>${fmt(t[0]/7)} ккал</b></div>
   <div class="row"><span>Б · Ж · У за неделю</span><b>${R(t[1])} · ${R(t[2])} · ${R(t[3])} г</b></div>
   <div class="row"><span>Норма Б · Ж · У</span><b>${R(T[1])} · ${R(T[2])} · ${R(T[3])} г</b></div>
   <div class="bar" style="margin:8px 0"><i style="width:${pct(t[0],T[0])}%"></i></div><div class="note">${adv}</div></div>`};
- return `<div class="psum">${card('v')}${card('k')}</div><p class="note" style="margin:8px 2px 0">Как считается: всё, что стоит в дне, — порция обоим (у Кристины порция ${cfg().kf}% от Вовиной), выпечка — по штуке. Едите 3 раза в день, так что на день ставь завтрак и 2 блюда (обед и ужин). Перекусы и «своё» здесь не считаются — они в дневнике.</p>`;
+ return `<div class="psum">${ppl().map(card).join('')}</div><p class="note" style="margin:8px 2px 0">Как считается: всё, что стоит в дне, — порция каждому (размер порции — по его норме, ${ppl().map(p=>esc(p.name)+' '+R(p.f*100)+'%').join(', ')}), выпечка — по штуке. На день ставь завтрак и 2 блюда (обед и ужин). Перекусы и «своё» здесь не считаются — они в дневнике.</p>`;
 }
 
-function cookTag(date){const w=S.cook[date];return w?`<span class="cooktag ${w}">готовит ${esc(cfg().names[w])}</span>`:''}
+function cookTag(date){const w=S.cook[date];if(!w||!ppl().some(p=>p.id===w))return '';const p=P(w);return `<span class="cooktag" style="${pv(p)}">готовит ${esc(p.name)}</span>`}
 function monthView(){
  const base=S.mon?parse(S.mon+'-01'):new Date();const y=base.getFullYear(),mo=base.getMonth();
- const first=new Date(y,mo,1),start=monday(first),today=iso(new Date());const n=cfg().names;
+ const first=new Date(y,mo,1),start=monday(first),today=iso(new Date());const PP=ppl();const pp=w=>PP.find(p=>p.id===w);
  const MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
- let cells='';for(let i=0;i<42;i++){const d=addDays(start,i);if(i>=35&&d.getMonth()!==mo)break;const k=iso(d),w=S.cook[k]||'';
-  cells+=`<button class="mday ${w}${d.getMonth()!==mo?' out':''}${k===today?' today':''}" data-act="cookday" data-date="${k}" aria-label="${d.getDate()} ${MON[d.getMonth()]}${w?', готовит '+esc(n[w]):''}">${d.getDate()}${w?`<small>${esc(n[w].slice(0,8))}</small>`:''}</button>`}
+ let cells='';for(let i=0;i<42;i++){const d=addDays(start,i);if(i>=35&&d.getMonth()!==mo)break;const k=iso(d),c=pp(S.cook[k]);
+  cells+=`<button class="mday${c?' c':''}${d.getMonth()!==mo?' out':''}${k===today?' today':''}" data-act="cookday" data-date="${k}"${c?` style="${pv(c)}"`:''} aria-label="${d.getDate()} ${MON[d.getMonth()]}${c?', готовит '+esc(c.name):''}">${d.getDate()}${c?`<small>${esc(c.name.slice(0,8))}</small>`:''}</button>`}
  const cnt=w=>Object.entries(S.cook).filter(([k,v])=>v===w&&k.startsWith(y+'-'+pad(mo+1))).length;
- return `<h2>Кто готовит</h2><p class="note">Нажми на день: первый раз — готовит ${esc(n.v)} (бордовый), второй — ${esc(n.k)} (жёлтый), третий — снять отметку. Отметки общие и видны в плане недели.</p>
+ return `<h2>Кто готовит</h2><p class="note">Нажимай на день — по очереди: ${PP.map(p=>esc(p.name)).join(' → ')} → снять отметку. Отметки общие и видны в плане недели.</p>
  <div class="mhead"><button class="iconbtn" style="background:var(--card);color:var(--ink);border:1px solid var(--line)" data-act="mon" data-d="-1" aria-label="Прошлый месяц">‹</button><b>${MN[mo]} ${y}</b><button class="iconbtn" style="background:var(--card);color:var(--ink);border:1px solid var(--line)" data-act="mon" data-d="1" aria-label="Следующий месяц">›</button></div>
  <div class="mcal">${DOW.map(x=>`<div class="dw">${x}</div>`).join('')}${cells}</div>
- <p style="margin-top:12px;font-size:14px"><span class="cooktag v">${esc(n.v)}</span> ${cnt('v')} ${plural(cnt('v'),['день','дня','дней'])} · <span class="cooktag k">${esc(n.k)}</span> ${cnt('k')} ${plural(cnt('k'),['день','дня','дней'])}</p>`}
+ <p style="margin-top:12px;font-size:14px;display:flex;flex-wrap:wrap;gap:8px">${PP.map(p=>`<span><span class="cooktag" style="${pv(p)}">${esc(p.name)}</span> ${cnt(p.id)} ${plural(cnt(p.id),['день','дня','дней'])}</span>`).join('')}</p>`}
 
 function party(){
  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -813,7 +861,7 @@ function qOpts(){const sel=S.qp||'x_halva';const o=(ids)=>ids.sort((a,b)=>ALL[a]
 function qUnits(id){const it=ALL[id];return it.u.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${it.ml?'мл':'г'})</option>`).join('')+`<option value="g">${it.ml?'мл':'граммов'}</option>`}
 function amountOf(id,n,u){const it=ALL[id];if(u==='g')return {g:n,txt:String(n).replace('.',',')+(it.ml?' мл':' г')};const un=it.u[+u];const g=n*un[1];return {g,txt:String(n).replace('.',',')+' '+(Number.isInteger(n)?plural(n,un[0]):un[0][1])}}
 function renderDiary(){
- const p=plan(),who=S.who,n=cfg().names[who],m=parse(S.wk);
+ const p=plan(),who=S.who,n=P(who).name,m=parse(S.wk);
  const days=DOW.map((d,i)=>`<button class="chip day" data-act="day" data-i="${i}" aria-pressed="${S.day===i}">${d}<small>${addDays(m,i).getDate()}</small></button>`).join('');
  const list=S.log.filter(e=>e.who===who&&e.d===S.day);
  const tot=sum(list);
@@ -825,7 +873,7 @@ function renderDiary(){
  const sn=SNACKS.map(s=>qb('adds',`data-id="${s.id}"`,s.n,`${R(macros(s.items)[0]*S.mult)} ккал`)).join('');
  const cu=S.custom.map(c=>qb('addc',`data-id="${esc(c.id)}"`,c.label,`${R((+c.kcal||0)*S.mult)} ккал`)).join('');
  const planned=((p.days||{})[S.day]||[]).filter(id=>D[id]).map(id=>{const d=D[id];return d.cat==='bake'?qb('addd',`data-id="${id}"`,d.n+' (1 шт)',`${k(d)} ккал`).replace('class="qb"','class="qb plan"'):qb('addd',`data-id="${id}"`,dname(d),`${k(d)} ккал`).replace('class="qb"','class="qb plan"')}).join('');
- return `<div class="p${who}"><section>${progCard(who)}</section>
+ return `<div style="${pv(P(who))}"><section>${progCard(who)}</section>
  <section><div class="chips">${days}</div></section>
  <section><div class="sh"><h2>${esc(n)} · ${DOW[S.day]}</h2><p>${fmt(tot[0])} ккал</p></div>
  <div class="card mebox">${list.length?list.map(entryRow).join(''):'<div class="empty">Пока ничего. Добавь из списка ниже — одно нажатие.</div>'}</div></section>
@@ -841,7 +889,7 @@ function renderDiary(){
  <h3 style="margin:14px 2px 8px">Выпечка и перекусы</h3><div class="quick">${bk}${sn}</div>
  ${cu?`<h3 style="margin:14px 2px 8px">Свои сохранённые</h3><div class="quick">${cu}</div>`:''}</section></div>`;
 }
-const RF=[['all','Все'],['user','Наши записанные'],['tt','Из ТикТока'],['own','Наши'],['main','Вторые'],['soup','Супы'],['bake','Выпечка'],['bf','Завтраки']];
+const RF=[['all','Все'],['user','Свои записанные'],['shared','Из общей книги'],['tt','Из ТикТока'],['own','Домашние'],['main','Вторые'],['soup','Супы'],['bake','Выпечка'],['bf','Завтраки']];
 
 const CATN={main:'второе',soup:'суп',bake:'выпечка',bf:'завтрак'};
 let UD=[];
@@ -849,31 +897,32 @@ function userDishes(){return UD}
 function allDishes(){return DISHES.concat(UD)}
 function loadUserRecipes(){
  for(const d of UD)delete D[d.id];
- UD=S.urec.map(r=>{
+ const mk=(r,pre,src)=>{
   const portions=Math.max(1,Math.min(50,+r.portions||1));const cat=['main','soup','bake','bf'].includes(r.cat)?r.cat:'main';
   const items=Array.isArray(r.items)?r.items.map(x=>Array.isArray(x)?{i:x[0],g:x[1]}:x).filter(x=>x&&ALL[x.i]&&+x.g>0).map(x=>[x.i,+x.g]):[];
   const man=Array.isArray(r.man)&&+r.man[0]>0?[0,1,2,3].map(i=>+r.man[i]||0):null;
-  const d={id:'u_'+r.id,uid:r.id,src:'user',cat,n:String(r.n||'Своё блюдо').slice(0,80),time:String(r.time||'').slice(0,30)||'—',steps:Array.isArray(r.steps)?r.steps.map(x=>String(x).slice(0,500)).slice(0,30):[],items,portions,man:items.length?null:man};
+  const d={id:pre+r.id,uid:r.id,src,cat,n:String(r.n||'Своё блюдо').slice(0,80),time:String(r.time||'').slice(0,30)||'—',steps:Array.isArray(r.steps)?r.steps.map(x=>String(x).slice(0,500)).slice(0,30):[],items,portions,man:items.length?null:man};
   const per=items.map(([i,g])=>[i,g/portions]);
   if(cat==='bake'){d.B=items;d.pcs=portions}else if(cat==='soup')d.S=per;else d.H=per;
   if(!items.length&&!man){d.man=[0,0,0,0]}
-  return d});
+  return d};
+ UD=S.urec.map(r=>mk(r,'u_','user')).concat((S.shared||[]).map(r=>mk(r,'s_','shared')));
  for(const d of UD)D[d.id]=d;
 }
 let RE=null;
 function recEditView(){
  const opts=Object.entries(ALL).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}"${id===RE.cur?' selected':''}>${esc(v.n)}</option>`).join('');
  const it=ALL[RE.cur];const tot=macros(RE.items);const per=tot.map(x=>x/Math.max(1,RE.portions||1));
- return `<h2>${RE.id?'Изменить рецепт':'Свой рецепт'}</h2><p class="note">Пельмени, пирог, любимое блюдо — запиши один раз, и оно появится в рецептах, в плане недели, в дневнике и в покупках, когда поставишь его в план.</p>
+ return `<h2>${RE.mode==='mod'?'Изменить под нас':RE.id?'Изменить рецепт':'Свой рецепт'}</h2>${RE.mode==='mod'?'<p class="note">Правка видна только вашей кухне. Гарнир и соус по-прежнему выбираются в рецепте отдельно.</p>':''}<p class="note">Пельмени, пирог, любимое блюдо — запиши один раз, и оно появится в рецептах, в плане недели, в дневнике и в покупках, когда поставишь его в план.</p>
  <div class="field">Название<input id="rn" value="${esc(RE.n)}" placeholder="Например, пельмени со сметаной"></div>
  <div class="row2"><div class="field">Что это<select id="rc">${Object.entries(CATN).map(([k,v])=>`<option value="${k}"${RE.cat===k?' selected':''}>${v}</option>`).join('')}</select></div>
  <div class="field">${RE.cat==='bake'?'Сколько штук выходит':'Сколько порций выходит'}<input id="rpo" type="number" inputmode="decimal" min="1" value="${RE.portions}"></div></div>
- <p class="note" style="margin-top:-4px">Порции считаем Вовиного размера — Кристине приложение посчитает ${cfg().kf}%.</p>
+ <p class="note" style="margin-top:-4px">Порция — стандартная (на ~2250 ккал в день). Каждому приложение посчитает его долю: ${ppl().map(p=>esc(p.name)+' '+R(p.f*100)+'%').join(', ')}.</p>
  <h3 style="margin:10px 0 6px">Продукты на всё блюдо</h3>
  <div class="qline"><select id="rp" aria-label="Продукт">${opts}</select><input id="rqn" type="number" inputmode="decimal" min="0" step="0.5" value="1" aria-label="Сколько"><select id="rqu" aria-label="Чего">${qUnits(RE.cur)}</select></div>
  <button class="btn pri" data-act="radd" style="width:100%;justify-content:center">Добавить продукт</button>
  <div class="card" style="margin-top:10px">${RE.items.length?RE.items.map(([i,g],j)=>{const v=vibe(i,g);return `<div class="entry"><div class="t">${esc(ALL[i].n)}<small>${v.eye} · ${v.gr}</small></div><span class="k">${R(macros([[i,g]])[0])}</span><button class="x" data-act="rrm" data-i="${j}" aria-label="Убрать">×</button></div>`}).join(''):'<div class="empty">Продуктов пока нет. Можно и без них — тогда впиши калории порции ниже.</div>'}</div>
- ${RE.items.length?`<p style="margin:8px 0">Одна порция Вовы ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p>`:`<h3 style="margin:10px 0 6px">Или калории одной порции Вовы</h3><div class="row4"><div class="field">Ккал<input id="rmk" type="number" inputmode="decimal" value="${RE.man?RE.man[0]:''}"></div><div class="field">Б<input id="rmp" type="number" inputmode="decimal" value="${RE.man?RE.man[1]:''}"></div><div class="field">Ж<input id="rmf" type="number" inputmode="decimal" value="${RE.man?RE.man[2]:''}"></div><div class="field">У<input id="rmc" type="number" inputmode="decimal" value="${RE.man?RE.man[3]:''}"></div></div>`}
+ ${RE.items.length?`<p style="margin:8px 0">Одна стандартная порция ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p>`:`<h3 style="margin:10px 0 6px">Или калории одной порции Вовы</h3><div class="row4"><div class="field">Ккал<input id="rmk" type="number" inputmode="decimal" value="${RE.man?RE.man[0]:''}"></div><div class="field">Б<input id="rmp" type="number" inputmode="decimal" value="${RE.man?RE.man[1]:''}"></div><div class="field">Ж<input id="rmf" type="number" inputmode="decimal" value="${RE.man?RE.man[2]:''}"></div><div class="field">У<input id="rmc" type="number" inputmode="decimal" value="${RE.man?RE.man[3]:''}"></div></div>`}
  <div class="field">Время (необязательно)<input id="rt" value="${esc(RE.time)}" placeholder="~30 мин"></div>
  <div class="field">Как готовить — каждый шаг с новой строки (можно пропустить)<textarea id="rs" rows="5" style="border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:16px/1.4 Manrope,sans-serif;color:var(--ink)">${esc(RE.steps)}</textarea></div>
  <button class="btn tom" data-act="rsave" style="width:100%;justify-content:center">Сохранить рецепт</button>`}
@@ -881,11 +930,11 @@ function keepRE(){const g=x=>$(x)?$(x).value:null;RE.n=g('#rn')??RE.n;RE.cat=g('
  if($('#rmk'))RE.man=['#rmk','#rmp','#rmf','#rmc'].map(x=>parseFloat(String($(x).value).replace(',','.'))||0)}
 function renderRecipes(){
  const q=S.rq.toLowerCase().trim();
- const list=allDishes().filter(d=>{const f=S.rf;if(f==='user'&&d.src!=='user')return false;if(f==='kris'&&d.src!=='kris')return false;if(f==='tt'&&d.src!=='tt')return false;if(f==='own'&&d.src!=='own')return false;if(['main','soup','bake','bf'].includes(f)&&d.cat!==f)return false;return !q||d.n.toLowerCase().includes(q)});
+ const list=allDishes().filter(d=>{const f=S.rf;if(f==='user'&&d.src!=='user')return false;if(f==='shared'&&d.src!=='shared')return false;if(f==='tt'&&d.src!=='tt')return false;if(f==='own'&&d.src!=='own')return false;if(['main','soup','bake','bf'].includes(f)&&d.cat!==f)return false;return !q||d.n.toLowerCase().includes(q)});
  return `<section><div class="eye"><b>На глаз, без весов.</b> Мясо или рыба — кусок с ладонь (≈150–200 г). Гарнир — с кулак готового или ⅓ кружки сухого. Овощи — сколько влезет. Масло — ложка на сковороду. В каждом рецепте рядом с «на глаз» мелко написаны граммы.</div></section>
  <section><button class="btn tom" data-act="newrec" style="width:100%;justify-content:center;margin-bottom:10px">+ Записать свой рецепт</button><input class="search" id="rq" placeholder="Найти рецепт" value="${esc(S.rq)}" aria-label="Поиск рецепта">
  <div class="chips" style="margin-top:10px">${RF.map(([v,l])=>`<button class="chip" data-act="rf" data-v="${v}" aria-pressed="${S.rf===v}">${l}</button>`).join('')}</div></section>
- <section class="rlist">${list.map(d=>`<button class="ritem" data-act="recipe" data-id="${d.id}"><div class="t"><b>${esc(d.n)}</b><span>${d.cat==='bf'?'завтрак':d.cat==='soup'?'суп':d.cat==='bake'?'выпечка':'второе'} · ${esc(d.time)} · ${R(portion(d,'v')[0])} ккал</span></div>${srcTag(d)}</button>`).join('')||'<div class="empty">Ничего не нашлось</div>'}</section>`;
+ <section class="rlist">${list.map(d=>`<button class="ritem" data-act="recipe" data-id="${d.id}"><div class="t"><b>${esc(d.n)}</b><span>${d.cat==='bf'?'завтрак':d.cat==='soup'?'суп':d.cat==='bake'?'выпечка':'второе'} · ${esc(d.time)} · ${R(portion(d)[0])} ккал</span></div>${srcTag(d)}</button>`).join('')||'<div class="empty">Ничего не нашлось</div>'}</section>`;
 }
 
 function priceInfo(id){const it=ALL[id],o=S.prices[id]||{};if(it.pack)return {pack:+o.pack||it.pack[0],price:o.price!=null?+o.price:it.pack[1],own:o.price!=null||o.pack!=null};return {kg:o.price!=null?+o.price:it.kg,own:o.price!=null}}
@@ -930,6 +979,7 @@ function renderShop(){
  ${groups}</section>`;
 }
 function render(){
+ if(S.fb&&!S.kid){$('#who').innerHTML='';$('#wklbl').innerHTML='';$('#tabs').innerHTML='';$('#kname').textContent='Кухня';$('#main').innerHTML=onboardView();banner();return}
  renderTop();banner();
  const v={week:renderWeek,diary:renderDiary,recipes:renderRecipes,shop:renderShop}[S.tab]||renderWeek;
  const keep=document.activeElement&&document.activeElement.id==='rq';
@@ -937,7 +987,7 @@ function render(){
  if(keep){const i=$('#rq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
  if(sheetOpen&&sheetLive)refreshSheet();
 }
-function refreshSheet(){if(sheetOpen&&sheetRender)$('#pane').innerHTML='<button class="close" data-act="close" aria-label="Закрыть">×</button>'+sheetRender()}
+function refreshSheet(){if(sheetOpen&&sheetRender===personView)keepPE();if(sheetOpen&&sheetRender)$('#pane').innerHTML='<button class="close" data-act="close" aria-label="Закрыть">×</button>'+sheetRender()}
 
 // ---------- листы ----------
 let sheetOpen=false,sheetRender=null,sheetLive=false;
@@ -945,24 +995,24 @@ function openSheet(fn,live){sheetRender=fn;sheetLive=!!live;sheetOpen=true;$('#p
 function closeSheet(){sheetOpen=false;sheetRender=null;$('#sheet').classList.remove('open')}
 function plate(items){return items.filter(([id])=>!['oil','garlic','hot','mustard','honey','soy','flour','manka','sugar','tpaste','smet','teriyaki','butter'].includes(id)).map(([id,g])=>vibe(id,g).eye+(ALL[id].sh?' '+ALL[id].sh:id.startsWith('x_')?' — '+ALL[id].n.toLowerCase():'')).join(', ')}
 function recipeView(id){return ()=>{
- const d=D[id],n=cfg().names;let kb='';
- if(d.cat==='main'||(d.cat==='bf'&&d.src==='kris')){const v=portion(d,'v'),k=portion(d,'k');kb=`<table><tr><th>Порция</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr><tr><td>${esc(n.v)}</td><td>${R(v[0])}</td><td>${R(v[1])}</td><td>${R(v[2])}</td><td>${R(v[3])}</td></tr><tr><td>${esc(n.k)}</td><td>${R(k[0])}</td><td>${R(k[1])}</td><td>${R(k[2])}</td><td>${R(k[3])}</td></tr></table>
-  <div class="eye" style="margin-top:10px"><b>На тарелку на глаз</b><br>${esc(n.v)}: ${plate(full(d))}.<br>${esc(n.k)}: ${plate(full(d).map(([i,g])=>[i,g*KF]))}.</div>`}
- else if(d.cat==='bake'){const k=portion(d,'v');kb=`<table><tr><th>1 штука</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr><tr><td></td><td>${R(k[0])}</td><td>${R(k[1])}</td><td>${R(k[2])}</td><td>${R(k[3])}</td></tr></table>`}
- else{const v=portion(d,'v'),k=portion(d,'k');kb=`<table><tr><th>${d.cat==='soup'?'Тарелка (с 2 тостами)':'Порция'}</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr><tr><td>${esc(n.v)}</td><td>${R(v[0])}</td><td>${R(v[1])}</td><td>${R(v[2])}</td><td>${R(v[3])}</td></tr><tr><td>${esc(n.k)}</td><td>${R(k[0])}</td><td>${R(k[1])}</td><td>${R(k[2])}</td><td>${R(k[3])}</td></tr></table>`}
- const b=d.src==='user'?Object.fromEntries((d.items||[]).map(([i,g])=>[i,g])):batchItems(d);
- const head=d.src==='user'?`Продукты на всё блюдо (≈${d.portions} ${plural(d.portions,['порция','порции','порций'])} Вовиного размера)`:d.cat==='main'?'На одну готовку (3 порции Вове + 3 поменьше Кристине)':d.cat==='soup'?'На кастрюлю (2 ужина на двоих)':d.cat==='bake'?`На партию (${d.pcs} шт)`:'На одну порцию Вовы';
+ const d=D[id];let kb='';const PP=ppl();
+ const tbl=(h,rows)=>`<table><tr><th>${h}</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr>${rows.map(([nm,k])=>`<tr><td>${esc(nm)}</td><td>${R(k[0])}</td><td>${R(k[1])}</td><td>${R(k[2])}</td><td>${R(k[3])}</td></tr>`).join('')}</table>`;
+ if(d.cat==='main'){kb=tbl('Порция',PP.map(p=>[p.name,portion(d,p.id)]))+(d.man?'':`<div class="eye" style="margin-top:10px"><b>На тарелку на глаз</b><br>${PP.map(p=>`${esc(p.name)}: ${plate(full(d).map(([i,g])=>[i,g*p.f]))}.`).join('<br>')}</div>`)}
+ else if(d.cat==='bake'){kb=tbl('1 штука',[['',portion(d)]])}
+ else{kb=tbl(d.cat==='soup'?'Тарелка (с 2 тостами)':'Порция',PP.map(p=>[p.name,portion(d,p.id)]))}
+ const b=d.src==='user'||d.src==='shared'?Object.fromEntries((d.items||[]).map(([i,g])=>[i,g])):batchItems(d);
+ const head=d.src==='user'||d.src==='shared'?`Продукты на всё блюдо (≈${d.portions} ${plural(d.portions,['порция','порции','порций'])} стандартного размера)`:d.cat==='main'?'На одну готовку (3 обеда-ужина всей кухне)':d.cat==='soup'?'На кастрюлю (2 ужина всей кухне)':d.cat==='bake'?`На партию (${d.pcs} шт)`:'На одну стандартную порцию';
  const ing=Object.entries(b).map(([i,g])=>{const v=vibe(i,g);return `<span>${esc(ALL[i].n)}</span><span>${v.eye} · ${v.gr}</span>`}).join('');
  const ch=choice(d);
  const optsH=(d.opts||[]).map((o,k)=>`<div style="margin:12px 0 0"><div class="note" style="margin-bottom:6px">${esc(o.t)}</div><div class="chips">${o.c.map((c,i)=>`<button class="chip" data-act="opt" data-id="${d.id}" data-k="${k}" data-i="${i}" aria-pressed="${ch[k]===i}">${esc(c[0])}</button>`).join('')}</div></div>`).join('');
  const pm=parse(S.wk);const planH=`<div style="margin:14px 0 0"><div class="note" style="margin-bottom:6px">Поставить в план этой недели</div><div class="chips">${DOW.map((x,i)=>`<button class="chip day" data-act="toplan" data-id="${d.id}" data-i="${i}">${x}<small>${addDays(pm,i).getDate()}</small></button>`).join('')}</div></div>`;
  return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><h2 style="margin-top:10px">${esc(d.n)}</h2>${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
  ${ing?`<h3 style="margin:18px 0 8px">${head}</h3><div class="ing">${ing}</div>`:''}<p class="note">Соль, перец, паприка, уксус — по вкусу.</p>
- ${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`:''}${d.tip?`<div class="eye">${esc(d.tip)}</div>`:''}${d.src==='user'?`<div class="acts" style="margin-top:14px"><button class="btn" data-act="editrec" data-id="${esc(d.uid)}">Изменить</button><button class="btn" data-act="delrec" data-id="${esc(d.uid)}">Удалить</button></div>`:''}`}}
+ ${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`:''}${d.tip?`<div class="eye">${esc(d.tip)}</div>`:''}${recActs(d)}`}}
 function swapView(s){return ()=>{
- const p=plan(),cur=slotDish(p,s);const k0=portion(cur,'v')[0];
+ const p=plan(),cur=slotDish(p,s);const k0=portion(cur)[0];
  const used=new Set([...p.m,p.soup,p.bake]);
- const alt=allDishes().filter(d=>d.cat===cur.cat&&d.id!==cur.id).map(d=>({d,diff:portion(d,'v')[0]-k0})).sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
+ const alt=allDishes().filter(d=>d.cat===cur.cat&&d.id!==cur.id).map(d=>({d,diff:portion(d)[0]-k0})).sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
  return `<h2>Заменить: ${esc(cur.n)}</h2><p class="note">Сначала самые похожие по калориям. Корзина пересчитается сама.</p><div class="rlist">${alt.map(({d,diff})=>`<button class="ritem" data-act="doswap" data-s="${s}" data-id="${d.id}"><div class="t"><b>${esc(d.n)}</b><span>${diff>=0?'+':'−'}${Math.abs(R(diff))} ккал на порцию${used.has(d.id)?' · уже в наборе':''}</span></div>${srcTag(d)}</button>`).join('')}</div>`}}
 function tplView(){return `<h2>Набор целиком</h2><p class="note">Готовые наборы на 4 недели: в каждом 2 наших блюда, 2 из ТикТока, суп и выпечка. Остальные блюда — через «Заменить» или «Поставить в план» в рецепте. Отметки «приготовлено» сбросятся.</p><div class="rlist">${TEMPLATES.map((t,i)=>`<button class="ritem" data-act="dotpl" data-i="${i}"><div class="t"><b>Набор ${i+1}</b><span>${[...t.m,t.soup,t.bake].map(id=>D[id].n.split(' ·')[0].split(' +')[0]).join(' · ')}</span></div>${plan().tpl===i?'<span class="tag">сейчас</span>':''}</button>`).join('')}</div>`}
 // конструктор своего блюда
@@ -971,7 +1021,7 @@ function builderView(){
  const opts=Object.entries(ALL).filter(([,v])=>!v.pantry||v.n).sort((a,b)=>a[1].n.localeCompare(b[1].n,'ru')).map(([id,v])=>`<option value="${id}">${esc(v.n)}</option>`).join('');
  const tot=macros(B.items.map(x=>[x.id,x.g]));
  const sel=B.cur||'breast';const us=ALL[sel].u;
- return `<h2>Своё блюдо</h2><p class="note">Выбери продукты и сколько примерно положила — на глаз. Калории посчитаются сами. Порция — то, что съел ${esc(cfg().names[S.who])}.</p>
+ return `<h2>Своё блюдо</h2><p class="note">Выбери продукты и сколько примерно положила — на глаз. Калории посчитаются сами. Порция — то, что съел(а) ${esc(P(S.who).name)}.</p>
  <div class="field">Продукт<select id="bp">${opts.replace(`value="${sel}"`,`value="${sel}" selected`)}</select></div>
  <div class="row2"><div class="field">Сколько<input id="bn" type="number" inputmode="decimal" min="0" step="0.5" value="1"></div>
  <div class="field">Чего<select id="bu">${us.map((u,i)=>`<option value="${i}">${u[0][1]} (${u[1]} ${ALL[sel].ml?'мл':'г'})</option>`).join('')}<option value="g">граммов</option></select></div></div>
@@ -986,36 +1036,194 @@ function manualView(){return `<h2>Вписать вручную</h2><p class="no
  <div class="row4"><div class="field">Ккал<input id="mk" type="number" inputmode="decimal"></div><div class="field">Б<input id="mp" type="number" inputmode="decimal"></div><div class="field">Ж<input id="mf" type="number" inputmode="decimal"></div><div class="field">У<input id="mc" type="number" inputmode="decimal"></div></div>
  <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="msave" style="width:22px;height:22px"> Сохранить в «свои»</label>
  <button class="btn tom" data-act="mdone" style="width:100%;justify-content:center">Записать в ${DOW[S.day]}</button>`}
-function settingsView(){const c=cfg();const row=w=>`<h3 style="margin:16px 0 8px">${esc(c.names[w])}: норма в день</h3><div class="row4">${['Ккал','Б','Ж','У'].map((l,i)=>`<div class="field">${l}<input id="t${w}${i}" type="number" inputmode="decimal" value="${c.targets[w][i]}"></div>`).join('')}</div>`;
- return `<h2>Настройки</h2><div class="row2"><div class="field">Имя 1<input id="nv" value="${esc(c.names.v)}"></div><div class="field">Имя 2<input id="nk" value="${esc(c.names.k)}"></div></div>
- ${row('v')}${row('k')}<p class="note">Вове норма посчитана на похудение (~−0,5 кг в неделю). Кристине — на поддержание веса. Шкала считает за неделю: норма × 7. Едите оба 3 раза в день, порции Кристины считаются от Вовиных.</p>
- <div class="field">Порция Кристины от Вовиной, %<input id="kf" type="number" inputmode="decimal" value="${c.kf}"></div>
+function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();const st=S.settings||{};
+ const people=ppl().map(p=>`<button class="ritem" data-act="person" data-id="${esc(p.id)}" style="${pv(p)}"><div class="t"><b><i class="dot"></i>${esc(p.name)}</b><span>${fmt(p.tg[0])} ккал в день · порция ${R(p.f*100)}%${p.email?' · '+esc(p.email):''}</span></div><span class="note">изменить</span></button>`).join('');
+ return `<h2>Настройки</h2>
+ <h3 style="margin:14px 0 8px">Кухня</h3>
+ <div class="field">Название${own?'':' (меняет хозяин)'}<input id="kn_in" value="${esc(k.name||'')}" ${own?'':'disabled'} maxlength="40"></div>
  <div class="field">Бюджет на продукты в неделю, ₽<input id="bud" type="number" inputmode="decimal" value="${c.budget}"></div>
+ <div class="field">Кнопка «кто готовит» у дня<select id="cq"><option value="">«Кто готовит?» — по очереди все</option>${ppl().map(p=>`<option value="${esc(p.id)}"${st.cookQuick===p.id?' selected':''}>Одна кнопка для: ${esc(p.name)}</option>`).join('')}</select></div>
+ <div class="field">Надпись на этой кнопке<input id="cl" value="${esc(st.cookLabel||'')}" placeholder="Например, Готовит мужчина" maxlength="40"></div>
  <button class="btn pri" data-act="sdone" style="width:100%;justify-content:center">Сохранить</button>
- ${S.fb?`<div class="eye" style="margin-top:16px"><b>Общая база.</b> ${S.user?'Вы вошли как '+esc(S.user)+'.':''} Всё сохраняется в вашу базу Firebase и сразу видно на обоих телефонах.</div>`:`<div class="eye" style="margin-top:16px"><b>Как пользоваться вдвоём.</b> Владелец открывает меню «Поделиться» у этого приложения в Claude и приглашает Кристину с доступом «Участник» или «Редактор». Тогда у вас общие отметки, дневник и покупки. ${S.mode==='db'?'Общая база подключена.':'Сейчас общая база не подключена — всё хранится на этом телефоне.'}</div>`}
- <h3 style="margin:16px 0 8px">Перенос данных</h3><p class="note">Все планы, покупки, дневник, свои рецепты, цены и календарь — одним файлом. Выгрузите здесь и загрузите в другой версии приложения.</p>
+ <h3 style="margin:18px 0 8px">Люди на кухне</h3><p class="note">Норма и размер порции у каждого считаются из профиля: вес, рост, возраст, активность и цель.</p>
+ <div class="rlist">${people}</div><button class="btn" data-act="padd" style="width:100%;justify-content:center;margin-top:8px">+ Добавить человека</button>
+ ${S.fb?membersView()+kitchensView():''}
+ ${isAdmin()?accessView()+pendingView():''}
+ <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- ${S.fb?accessView():''}
- ${S.fb?'<button class="btn" data-act="logout" style="width:100%;justify-content:center;margin-top:10px">Выйти</button>':''}`}
+ ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
-// ---------- кто имеет доступ ----------
+// ---------- кухни и доступ ----------
 const OWNERS=()=>(window.FB_OWNERS||[]).map(x=>x.toLowerCase());
-const isOwner=()=>!!S.user&&OWNERS().includes(String(S.user).toLowerCase());
-function accessView(){const own=isOwner();const list=S.access||[];
- const row=(e,del)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--ink) 10%,transparent)"><span style="flex:1;word-break:break-all">${esc(e)}</span>${del?`<button class="btn" data-act="accdel" data-e="${esc(e)}" aria-label="Убрать доступ" style="padding:4px 10px">✕</button>`:'<span class="note">хозяин</span>'}</div>`;
- return `<h3 style="margin:16px 0 8px">Кто имеет доступ</h3><p class="note">Человек из списка входит кнопкой «Войти через Google» своим аккаунтом и видит всё то же, что и вы.${own?'':' Менять список могут только хозяева.'}</p>
- ${OWNERS().map(e=>row(e,false)).join('')}${list.map(e=>row(e,own)).join('')}
- ${own?`<div class="row2" style="margin-top:10px;grid-template-columns:1fr auto"><input id="accin" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="accadd">Добавить</button></div>`:''}`}
+const me=()=>String(S.user||'').toLowerCase();
+const isAdmin=()=>!!S.user&&OWNERS().includes(me());
+const isSuper=()=>!!S.user&&OWNERS()[0]===me(); // почты добавляет только главный админ (первый в FB_OWNERS)
+const isOwner=isAdmin;
+const isKOwner=()=>!S.fb||!!(S.kdoc&&(S.kdoc.owners||[]).map(x=>String(x).toLowerCase()).includes(me()));
+const kp=p=>(S.kid?'kitchens/'+S.kid+'/':'')+p;
+const ks={watchDoc:(p,cb)=>store.watchDoc(kp(p),cb),setDoc:(p,o)=>store.setDoc(kp(p),o),watchQ:(c,f,v,cb)=>store.watchQ(kp(c),f,v,cb),add:(c,o)=>store.add(kp(c),o),del:(c,id)=>store.del(kp(c),id)};
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+let gUnsubs=[];
+function startKitchens(){
+ gUnsubs.forEach(u=>{try{u()}catch(e){}});gUnsubs=[];S.kitchens=null;
+ gUnsubs.push(store.watchQ('kitchens','members',me(),list=>{
+  S.kitchens=list.sort((a,b)=>(a.created||0)-(b.created||0));
+  if(S.kid){S.kdoc=list.find(k=>k.id===S.kid)||null;if(!S.kdoc){unsubAll();S.kid=null}}
+  if(!S.kid&&list.length){const want=LS.get('kid',null);openKitchen((list.find(k=>k.id===want)||list[0]).id);return}
+  render();if(sheetOpen)refreshSheet()},'array-contains'));
+ gUnsubs.push(store.watchQ('shared',null,null,a=>{S.shared=a;loadUserRecipes();if(S.kid)render()}));
+ if(isAdmin()){
+  gUnsubs.push(store.watchDoc('access/main',d=>{S.access=((d&&d.emails)||[]).slice();if(sheetOpen)refreshSheet()}));
+  gUnsubs.push(store.watchQ('pending',null,null,a=>{S.pending=a.sort((x,y)=>(x.at||0)-(y.at||0));if(sheetOpen)refreshSheet()}))}
+}
+function unsubAll(){[...unsubs,...wkUnsubs].forEach(u=>{try{u()}catch(e){}});unsubs=[];wkUnsubs=[]}
+function openKitchen(kid){
+ unsubAll();S.kid=kid;LS.set('kid',kid);S.kdoc=(S.kitchens||[]).find(k=>k.id===kid)||S.kdoc;
+ S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];applyMods();loadUserRecipes();syncPeople();
+ loadTimer=setTimeout(()=>{stale=true;banner()},10000);subscribeAll();render()}
+function saveKitchen(patch){const k=Object.assign({},S.kdoc||{},patch);delete k.id;S.kdoc=Object.assign({id:S.kid},k);render();return store.setDoc('kitchens/'+S.kid,k)}
+function newPersonFor(email,name,i){return {id:rid(),name:name||'Я',color:COLORS[(i||0)%COLORS.length],sex:'m',age:30,h:175,w:75,act:'light',goal:'keep',meals:{b:1,l:1,d:1},pct:null,tg:null,email:email||''}}
+async function createKitchen(name,kid,extra,settings){
+ kid=kid||rid()+rid();
+ const doc=Object.assign({name,owners:[me()],members:[me()],created:Date.now()},extra||{});
+ try{await DB.doc('kitchens/'+kid).set(doc);if(settings)await DB.doc('kitchens/'+kid+'/settings/main').set(JSON.parse(JSON.stringify(settings)))}
+ catch(e){toast(e&&e.code==='permission-denied'?'Свою кухню можно завести по приглашению — попросите Вову или Кристину добавить ваш Gmail':'Не получилось создать кухню, попробуйте ещё раз');return null}
+ S.kitchens=(S.kitchens||[]).filter(k=>k.id!==kid).concat([Object.assign({id:kid},doc)]);
+ return kid}
+async function kCreate(){
+ const el=$('#kn');const name=(el&&el.value||'').trim().slice(0,40)||'Моя кухня';
+ const st={people:[newPersonFor(me(),S.uname||'Я',2)],budget:3500,cookQuick:null,cookLabel:null};
+ const kid=await createKitchen(name,null,null,st);if(!kid)return;
+ closeSheet();openKitchen(kid);PE=JSON.parse(JSON.stringify(st.people[0]));PE.first=true;openSheet(personView);
+}
+async function migrate(){
+ toast('Переношу данные…');
+ const kid=await createKitchen('Кухня на двоих','nadvoih',{owners:[OWNERS()[0]],members:OWNERS(),legacy:true});if(!kid)return;
+ let n=0;
+ try{for(const c of COLLS){const snap=await DB.collection(c).get();for(const d of snap.docs){let o=d.data();if(c==='settings')o=normSettings(o);await DB.doc('kitchens/'+kid+'/'+c+'/'+d.id).set(JSON.parse(JSON.stringify(o)));n++}}
+  const s=await DB.doc('kitchens/'+kid+'/settings/main').get();if(!s.exists)await DB.doc('kitchens/'+kid+'/settings/main').set(JSON.parse(JSON.stringify(normSettings({}))))}
+ catch(e){console.warn(e);toast('Перенос прервался — нажмите ещё раз');return}
+ openKitchen(kid);toast('Перенесено записей: '+n);
+}
+function onboardView(){
+ if(S.kitchens===null)return '<section><div class="empty" style="margin-top:30px">Загружаю ваши кухни…</div></section>';
+ const legacy=isSuper()?`<div class="card" style="margin-bottom:12px"><h3>Перенести «Кухню на двоих»</h3><p class="note">Планы, покупки, дневник, рецепты, цены и календарь из прошлой версии переедут в кухню «Кухня на двоих».</p><button class="btn pri" data-act="migrate" style="width:100%;justify-content:center">Перенести наши данные</button></div>`:'';
+ return `<section><h2 style="margin:10px 0 6px">Привет${S.uname?', '+esc(S.uname):''}!</h2><p class="note" style="margin-bottom:14px">Кухня — это ваше общее пространство: кто ест, сколько кому нужно, меню на неделю и покупки.</p>${legacy}
+ <div class="card"><h3>Завести свою кухню</h3><div class="field">Как назвать<input id="kn" placeholder="Например, Кухня Маши" maxlength="40"></div><button class="btn tom" data-act="kcreate" style="width:100%;justify-content:center">Создать кухню</button>
+ <p class="note" style="margin:10px 0 0">Если вас позвали в чужую кухню, она появится здесь сама, как только хозяин добавит ваш Gmail.</p></div></section>`}
+function membersView(){const k=S.kdoc||{};const own=isKOwner();const owners=(k.owners||[]).map(x=>String(x).toLowerCase());
+ const row=e=>`<div class="arow"><span>${esc(e)}</span>${owners.includes(String(e).toLowerCase())?'<span class="note">хозяин</span>':own?`<button class="btn sm" data-act="mdel" data-e="${esc(e)}" aria-label="Убрать ${esc(e)} из кухни">✕</button>`:''}</div>`;
+ return `<h3 style="margin:18px 0 8px">Кто в этой кухне</h3><p class="note">Эти люди входят через Google и видят эту кухню.${own?' Пригласить можно любой Gmail — свою кухню ему для этого заводить не нужно.':' Менять список может хозяин кухни.'}</p>${(k.members||[]).map(row).join('')}
+ ${own?`<div class="addrow"><input id="memin" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="madd">Пригласить</button></div>`:''}`}
+function kitchensView(){const list=S.kitchens||[];
+ return `<h3 style="margin:18px 0 8px">Мои кухни</h3>${list.map(k=>`<div class="arow"><span><b>${esc(k.name)}</b></span>${k.id===S.kid?'<span class="note">открыта</span>':`<button class="btn sm" data-act="kopen" data-id="${esc(k.id)}">Открыть</button>`}</div>`).join('')}
+ <div class="addrow"><input id="kn" placeholder="Название новой кухни" maxlength="40"><button class="btn" data-act="kcreate">Создать</button></div>`}
+async function memberAdd(){const v=($('#memin').value||'').trim().toLowerCase();if(!EMAIL_RE.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}
+ const m=(S.kdoc.members||[]).map(x=>String(x).toLowerCase());if(m.includes(v)){toast('Уже в кухне');return}
+ await saveKitchen({members:[...m,v]});toast('Приглашён: '+v+'. Пусть войдёт через Google по ссылке на сайт');refreshSheet()}
+function memberDel(e){const m=(S.kdoc.members||[]).filter(x=>String(x).toLowerCase()!==String(e).toLowerCase());saveKitchen({members:m}).then(()=>refreshSheet());toast('Убран из кухни: '+e,()=>saveKitchen({members:[...m,e]}).then(()=>refreshSheet()))}
+
+// кто может завести свою кухню (только для админов приложения)
+function accessView(){const list=S.access||[];const sup=isSuper();
+ const row=(e,del)=>`<div class="arow"><span>${esc(e)}</span>${del&&sup?`<button class="btn sm" data-act="accdel" data-e="${esc(e)}" aria-label="Убрать ${esc(e)}">✕</button>`:del?'':'<span class="note">админ</span>'}</div>`;
+ return `<h3 style="margin:18px 0 8px">Кто может завести свою кухню</h3><p class="note">Видно только вам двоим${sup?'':', менять список может Вова'}. Человек из списка входит через Google и создаёт свою отдельную кухню — ваших данных он не видит.</p>
+ ${OWNERS().map(e=>row(e,false)).join('')}${list.map(e=>row(e,true)).join('')}
+ ${sup?'':'<!--'}<div class="addrow"><input id="accin" type="email" inputmode="email" placeholder="почта Gmail" autocomplete="off"><button class="btn pri" data-act="accadd">Добавить</button></div>${sup?'':'-->'}`}
 function saveAccess(list){S.access=list;refreshSheet();return store.setDoc('access/main',{emails:list})}
 
+// ---------- общая книга: отправка и одобрение ----------
+function recDoc(r){const x={n:r.n,cat:r.cat,portions:r.portions,items:r.items,time:r.time||'',steps:r.steps||[],man:r.man||null};return JSON.parse(JSON.stringify(x))}
+function shareRec(uid){const r=S.urec.find(x=>x.id===uid);if(!r)return;
+ store.add('pending',{kid:S.kid,kname:(S.kdoc&&S.kdoc.name)||'',by:me(),at:Date.now(),rec:recDoc(r)}).then(()=>{closeSheet();toast('Отправлено на одобрение. Когда примут — рецепт появится у всех')})}
+function pendingView(){const list=S.pending||[];
+ return `<h3 style="margin:18px 0 8px">На одобрении${list.length?' ('+list.length+')':''}</h3>${list.length?list.map(p=>`<div class="card" style="margin-bottom:8px"><b>${esc(p.rec&&p.rec.n)}</b><div class="note">${esc(p.kname)} · ${esc(p.by)}</div>
+ <div class="acts" style="margin-top:8px"><button class="btn sm" data-act="pview" data-id="${esc(p.id)}">Посмотреть</button><button class="btn sm pri" data-act="pok" data-id="${esc(p.id)}">Принять</button><button class="btn sm" data-act="pno" data-id="${esc(p.id)}">Отклонить</button></div></div>`).join(''):'<p class="note">Пока ничего не прислали.</p>'}`}
+function pendingPreview(p){const r=p.rec||{};const items=(r.items||[]).filter(x=>x&&ALL[x.i]);const per=macros(items.map(x=>[x.i,x.g/Math.max(1,+r.portions||1)]));
+ return `<h2>${esc(r.n)}</h2><p class="note">${esc(p.kname)} · ${esc(p.by)} · ${CATN[r.cat]||'блюдо'} · ${R(+r.portions||1)} порц.</p>
+ ${items.length?`<p>Одна порция ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p><div class="ing">${items.map(x=>{const v=vibe(x.i,x.g);return `<span>${esc(ALL[x.i].n)}</span><span>${v.eye} · ${v.gr}</span>`}).join('')}</div>`:(r.man?`<p>Порция: ${R(r.man[0])} ккал (вписано вручную)</p>`:'')}
+ ${(r.steps||[]).length?`<ol class="steps">${r.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}
+ <div class="acts" style="margin-top:12px"><button class="btn pri" data-act="pok" data-id="${esc(p.id)}">Принять в общую книгу</button><button class="btn" data-act="pno" data-id="${esc(p.id)}">Отклонить</button></div>`}
+function approve(id){const p=(S.pending||[]).find(x=>x.id===id);if(!p)return;
+ store.setDoc('shared/'+id,Object.assign(recDoc(p.rec||{}),{by:p.by,at:Date.now()})).then(()=>store.del('pending',id));if(sheetRender&&sheetRender!==settingsView)closeSheet();toast('Рецепт теперь в общей книге')}
+function recActs(d){
+ if(d.src==='user')return `<div class="acts" style="margin-top:14px"><button class="btn" data-act="editrec" data-id="${esc(d.uid)}">Изменить</button><button class="btn" data-act="delrec" data-id="${esc(d.uid)}">Удалить</button>${S.fb?`<button class="btn" data-act="share" data-id="${esc(d.uid)}">Отправить в общую книгу</button>`:''}</div>`;
+ if(d.src==='shared')return isAdmin()?`<div class="acts" style="margin-top:14px"><button class="btn" data-act="unshare" data-id="${esc(d.uid)}">Убрать из общей книги</button></div>`:'';
+ return `<div class="acts" style="margin-top:14px"><button class="btn" data-act="modrec" data-id="${esc(d.id)}">Изменить под нас</button>${d.mod?`<button class="btn" data-act="unmod" data-id="${esc(d.id)}">Вернуть как было</button>`:''}</div>`}
+
+// ---------- правка общих блюд под свою кухню ----------
+const BASE={};DISHES.forEach(d=>{BASE[d.id]={n:d.n,H:d.H,S:d.S,B:d.B,pcs:d.pcs,steps:d.steps,time:d.time,mod:false}});
+function applyMods(){
+ for(const id in BASE)Object.assign(D[id],BASE[id]);
+ for(const m of Object.values(S.mods||{})){const d=D[m.id];if(!d||!BASE[m.id])continue;
+  const items=(m.items||[]).filter(x=>x&&ALL[x.i]&&+x.g>0).map(x=>[x.i,+x.g]);const po=Math.max(1,+m.portions||1);
+  if(items.length){if(d.cat==='bake'){d.B=items;d.pcs=po}else{const per=items.map(([i,g])=>[i,g/po]);if(d.cat==='soup')d.S=per;else d.H=per}}
+  if(m.n)d.n=String(m.n).slice(0,80);if(Array.isArray(m.steps)&&m.steps.length)d.steps=m.steps.map(x=>String(x).slice(0,500));if(m.time)d.time=String(m.time).slice(0,30);d.mod=true}}
+function modStart(id){const d=D[id];if(!d)return;const base=d.cat==='bake'?d.B:d.cat==='soup'?d.S:d.H;
+ RE={mode:'mod',did:id,id:null,n:d.n,cat:d.cat,portions:d.cat==='bake'?d.pcs:1,items:(base||[]).map(x=>[x[0],R(x[1])]),time:d.time==='—'?'':d.time,steps:(d.steps||[]).join('\n'),man:null,cur:'breast'};openSheet(recEditView)}
+
+// ---------- профиль человека и вес ----------
+let PE=null;
+function newPerson(){return newPersonFor('','',ppl().length)}
+function keepPE(){if(!PE)return;const g=id=>$(id)?$(id).value:null;const num=id=>{const v=g(id);return v===null||v===''?null:parseFloat(String(v).replace(',','.'))};
+ PE.name=(g('#pn')??PE.name).trim().slice(0,30);PE.sex=g('#psx')??PE.sex;PE.age=num('#page')??PE.age;PE.h=num('#ph')??PE.h;PE.w=num('#pw')??PE.w;PE.act=g('#pact')??PE.act;PE.goal=g('#pgoal')??PE.goal;
+ if($('#pmb'))PE.meals={b:$('#pmb').checked?1:0,l:$('#pml').checked?1:0,d:$('#pmd').checked?1:0};
+ if($('#ppct'))PE.pct=num('#ppct');
+ if($('#ptgon')){PE.tgOn=$('#ptgon').checked;PE.tgv=[0,1,2,3].map(i=>num('#ptg'+i)||0)}
+ if($('#pem'))PE.email=(g('#pem')||'').trim().toLowerCase()}
+function personView(){const p=PE;
+ const auto=calcTg(Object.assign({},p,{tg:null}));const tgOn=p.tgOn!==undefined?p.tgOn:!!(Array.isArray(p.tg)&&+p.tg[0]>0);const tgv=p.tgv||p.tg||auto;
+ const autoPct=Math.min(1.6,Math.max(0.3,Math.round((tgOn?tgv[0]:auto[0])/REF*20)/20));
+ const ws=(S.weights||[]).filter(w=>w.pid===p.id).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.ts||0)-(b.ts||0));
+ const isNew=!(S.settings&&(S.settings.people||[]).some(x=>x.id===p.id));
+ const opt=(arr,v)=>arr.map(([k,l])=>`<option value="${k}"${v===k?' selected':''}>${l}</option>`).join('');
+ return `<h2>${isNew?'Новый человек':esc(p.name)}</h2>${p.first?'<p class="note">Кухня создана! Заполните свой профиль — по нему посчитаются норма и порции. Потом можно добавить ещё людей.</p>':''}
+ <div class="field">Имя<input id="pn" value="${esc(p.name)}" maxlength="30"></div>
+ <div class="note" style="margin:2px 0 6px">Цвет</div><div class="chips" style="margin-bottom:10px">${COLORS.map(c=>`<button class="swatch" data-act="pcol" data-c="${c}" style="background:${c}" aria-pressed="${p.color===c}" aria-label="Цвет ${c}"></button>`).join('')}</div>
+ <div class="row2"><div class="field">Пол<select id="psx">${opt([['m','мужской'],['f','женский']],p.sex)}</select></div><div class="field">Возраст<input id="page" type="number" inputmode="numeric" value="${p.age??''}"></div></div>
+ <div class="row2"><div class="field">Рост, см<input id="ph" type="number" inputmode="decimal" value="${p.h??''}"></div><div class="field">Вес, кг<input id="pw" type="number" inputmode="decimal" value="${p.w??''}"></div></div>
+ <div class="field">Активность<select id="pact">${opt(ACT.map(a=>[a[0],a[1]]),p.act)}</select></div>
+ <div class="field">Цель<select id="pgoal">${opt(GOAL.map(a=>[a[0],a[1]]),p.goal)}</select></div>
+ <div class="note" style="margin:6px 0">Ест дома</div><div class="chips" style="margin-bottom:10px">${[['pmb','b','завтрак'],['pml','l','обед'],['pmd','d','ужин']].map(([id,k,l])=>`<label class="chip"><input type="checkbox" id="${id}" ${(p.meals||{b:1,l:1,d:1})[k]?'checked':''}> ${l}</label>`).join('')}</div>
+ <div class="eye"><b>Норма по формуле:</b> ${fmt(auto[0])} ккал · Б ${auto[1]} · Ж ${auto[2]} · У ${auto[3]} г в день${(+p.age||30)<16?'<br>Для детей формула неточная — лучше вписать норму от врача ниже.':''}</div>
+ <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ptgon" ${tgOn?'checked':''} style="width:22px;height:22px"> Своя норма вместо формулы</label>
+ ${tgOn?`<div class="row4">${['Ккал','Б','Ж','У'].map((l,i)=>`<div class="field">${l}<input id="ptg${i}" type="number" inputmode="decimal" value="${R(tgv[i]||0)}"></div>`).join('')}</div>`:''}
+ <div class="field">Порция от стандартной, % <span class="note">(пусто — сама по норме: ${R(autoPct*100)}%)</span><input id="ppct" type="number" inputmode="decimal" value="${p.pct??''}" placeholder="${R(autoPct*100)}"></div>
+ <div class="field">Gmail <span class="note">(необязательно — чтобы человек сам заходил со своего телефона)</span><input id="pem" type="email" inputmode="email" value="${esc(p.email||'')}" placeholder="name@gmail.com"></div>
+ <button class="btn pri" data-act="persave" style="width:100%;justify-content:center">${isNew?'Добавить':'Сохранить'}</button>
+ ${isNew?'':`<h3 style="margin:18px 0 6px">Вес</h3><div class="addrow"><input id="wnew" type="number" inputmode="decimal" step="0.1" placeholder="Сегодня, кг" value=""><button class="btn" data-act="wadd">Записать</button></div>
+ ${wChart(ws)}${ws.slice(-6).reverse().map(w=>`<div class="arow"><span>${esc(w.date.split('-').reverse().join('.'))}</span><b>${String(w.w).replace('.',',')} кг</b><button class="btn sm" data-act="wdel" data-id="${esc(w.id)}" aria-label="Удалить запись">✕</button></div>`).join('')}
+ ${ppl().length>1?`<button class="btn" data-act="pdel" style="width:100%;justify-content:center;margin-top:16px">Убрать ${esc(p.name)} с кухни</button>`:''}`}`}
+function wChart(ws){if(ws.length<2)return ws.length?'<p class="note">Запишите вес ещё раз через неделю — появится график.</p>':'<p class="note">Записывайте вес раз в неделю: увидите график, а норма сама пересчитается.</p>';
+ const W=320,H=120,pad=26;const xs=ws.map(w=>parse(w.date).getTime()),ys=ws.map(w=>+w.w);const x0=Math.min(...xs),x1=Math.max(...xs)||x0+1,y0=Math.min(...ys)-0.5,y1=Math.max(...ys)+0.5;
+ const X=t=>pad+(x1===x0?0:(t-x0)/(x1-x0))*(W-pad*2),Y=v=>H-pad+(-(v-y0)/(y1-y0))*(H-pad*2);
+ const pts=ws.map((w,i)=>`${X(xs[i]).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(' ');const d=ys[ys.length-1]-ys[0];
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="График веса"><polyline points="${pts}" fill="none" stroke="${esc(PE.color||'#2f7d5b')}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${ws.map((w,i)=>`<circle cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="4" fill="${esc(PE.color||'#2f7d5b')}"/>`).join('')}
+ <text x="${pad}" y="14" font-size="12" fill="currentColor">${String(ys[0]).replace('.',',')} → ${String(ys[ys.length-1]).replace('.',',')} кг (${d>0?'+':''}${String(Math.round(d*10)/10).replace('.',',')})</text></svg>`}
+function savePerson(){keepPE();const p=PE;if(!p.name){$('#pn').focus();toast('Впишите имя');return}
+ if(p.email&&!EMAIL_RE.test(p.email)){$('#pem').focus();toast('Почта выглядит неправильно');return}
+ const out={id:p.id,name:p.name,color:p.color,sex:p.sex,age:p.age,h:p.h,w:p.w,act:p.act,goal:p.goal,meals:p.meals||{b:1,l:1,d:1},pct:+p.pct>0?+p.pct:null,tg:p.tgOn?p.tgv:(p.tgOn===undefined?p.tg||null:null),email:p.email||''};
+ const st=Object.assign({people:[]},S.settings||{});const list=(st.people||[]).slice();const i=list.findIndex(x=>x.id===p.id);if(i>=0)list[i]=out;else list.push(out);st.people=list;
+ S.settings=st;syncPeople();ks.setDoc('settings/main',st);
+ if(out.email&&S.fb&&isKOwner()){const m=(S.kdoc&&S.kdoc.members||[]).map(x=>String(x).toLowerCase());if(!m.includes(out.email))saveKitchen({members:[...m,out.email]})}
+ closeSheet();render();toast(i>=0?'Сохранено':'Добавлен(а): '+out.name)}
+function delPerson(){const id=PE.id;const st=Object.assign({},S.settings);const before=st.people.slice();st.people=st.people.filter(x=>x.id!==id);S.settings=st;syncPeople();ks.setDoc('settings/main',st);closeSheet();render();
+ toast('Убран(а) с кухни',()=>{const s2=Object.assign({},S.settings,{people:before});S.settings=s2;syncPeople();ks.setDoc('settings/main',s2);render()})}
+function addWeight(){const v=parseFloat(String($('#wnew').value).replace(',','.'));if(!(v>20&&v<300)){$('#wnew').focus();toast('Впишите вес в килограммах');return}
+ keepPE();const today=iso(new Date());ks.add('weights',{pid:PE.id,date:today,w:Math.round(v*10)/10,ts:Date.now()});
+ const st=Object.assign({},S.settings);st.people=(st.people||[]).map(x=>x.id===PE.id?Object.assign({},x,{w:Math.round(v*10)/10}):x);S.settings=st;syncPeople();ks.setDoc('settings/main',st);PE.w=Math.round(v*10)/10;
+ toast('Вес записан — норма пересчитана');render();refreshSheet()}
+document.addEventListener('change',ev=>{if(ev.target.id==='ptgon'&&PE){keepPE();PE.tgOn=ev.target.checked;if(PE.tgOn&&!PE.tgv)PE.tgv=calcTg(Object.assign({},PE,{tg:null}));refreshSheet()}
+ else if(PE&&sheetRender===personView&&['psx','pact','pgoal'].includes(ev.target.id)){keepPE();refreshSheet()}});
+
+
 // ---------- перенос данных ----------
-const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes'];
+const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes','mods','weights'];
 let EXP='';
 async function saveExport(){const fn='kuhnya-'+todayKey()+'.json';
  if(!S.fb&&window.claude&&window.claude.use){try{const dl=await window.claude.use('downloads');if(dl){await dl.save({filename:fn,data:EXP});return}}catch(e){toast('Не сохранилось — скопируйте текст');return}}
  const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
-function readColl(c){return new Promise(res=>{let done=false,u=null;const t=setTimeout(()=>{if(!done){done=true;res([])}},15000);u=store.watchQ(c,null,null,a=>{if(done)return;done=true;clearTimeout(t);res(a);setTimeout(()=>{try{u&&u()}catch(e){}},0)})})}
+function readColl(c){return new Promise(res=>{let done=false,u=null;const t=setTimeout(()=>{if(!done){done=true;res([])}},15000);u=ks.watchQ(c,null,null,a=>{if(done)return;done=true;clearTimeout(t);res(a);setTimeout(()=>{try{u&&u()}catch(e){}},0)})})}
 function localDump(){const out={};const add=(c,id,o)=>{(out[c]=out[c]||{})[id]=o};
  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith('k2:'))continue;let v;try{v=JSON.parse(localStorage.getItem(k))}catch(e){continue}
   let m=k.match(/^k2:d:([^/]+)\/(.+)$/);if(m&&v){add(m[1],m[2],v);continue}
@@ -1027,7 +1235,7 @@ async function doExport(){
  if(store===Local)data=localDump();
  else for(const c of COLLS){const a=await readColl(c);if(a.length){data[c]={};a.forEach(o=>{const x=Object.assign({},o);delete x.id;data[c][o.id]=x})}}
  const n=Object.values(data).reduce((t,o)=>t+Object.keys(o).length,0);
- EXP=JSON.stringify({app:'kuhnya',v:1,at:new Date().toISOString(),data});
+ EXP=JSON.stringify({app:'kuhnya',v:2,at:new Date().toISOString(),data});
  openSheet(()=>`<h2>Выгрузка</h2><p class="note">Записей: ${n}. Сохраните файл или скопируйте текст целиком — потом загрузите его в другой версии приложения кнопкой «Загрузить».</p>
  <div class="row2"><button class="btn pri" data-act="dl" style="justify-content:center">Скачать файл</button><button class="btn" data-act="cp" style="justify-content:center">Скопировать текст</button></div>
  <textarea id="expta" readonly style="width:100%;height:140px;margin-top:10px;font:12px/1.3 monospace">${esc(EXP)}</textarea>`)}
@@ -1038,7 +1246,7 @@ function importView(){return `<h2>Загрузить данные</h2><p class="
 async function doImport(txt){
  let o;try{o=JSON.parse(txt)}catch(e){toast('Не похоже на файл выгрузки');return}
  if(!o||o.app!=='kuhnya'||!o.data){toast('Не похоже на файл выгрузки');return}
- const jobs=[];for(const c in o.data){if(!COLLS.includes(c))continue;for(const id in o.data[c])jobs.push(store.setDoc(c+'/'+id,o.data[c][id]))}
+ const jobs=[];for(const c in o.data){if(!COLLS.includes(c))continue;for(const id in o.data[c])jobs.push(ks.setDoc(c+'/'+id,o.data[c][id]))}
  toast('Загружаю…');await Promise.all(jobs);closeSheet();
  if(store===Local)subscribeAll();render();toast('Загружено записей: '+jobs.length)}
 document.addEventListener('change',ev=>{if(ev.target.id==='impf'&&ev.target.files[0]){const r=new FileReader();r.onload=()=>{$('#impta').value=r.result};r.readAsText(ev.target.files[0])}});
@@ -1046,7 +1254,7 @@ document.addEventListener('change',ev=>{if(ev.target.id==='impf'&&ev.target.file
 // ---------- действия ----------
 function addLog(label,m,note){
  const e={wk:S.wk,d:S.day,date:iso(addDays(parse(S.wk),S.day)),who:S.who,label,note:note||'',kcal:R(m[0]),p:R(m[1]),f:R(m[2]),c:R(m[3]),ts:Date.now()};
- store.add('log',e).then(id=>{if(id)toast(`+${fmt(e.kcal)} ккал · ${label}`,()=>store.del('log',id))});
+ ks.add('log',e).then(id=>{if(id)toast(`+${fmt(e.kcal)} ккал · ${label}`,()=>ks.del('log',id))});
 }
 let toastT=null;
 function toast(t,undo){const el=$('#toast');el.innerHTML=`<span>${esc(t)}</span>${undo?'<button id="undo">Отменить</button>':''}`;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),4000);if(undo)$('#undo').onclick=()=>{undo();el.classList.remove('show')}}
@@ -1072,31 +1280,32 @@ document.addEventListener('click',ev=>{
  else if(a==='exdel'){const i=+t.dataset.i;const x=S.shop.extra[i];S.shop.extra.splice(i,1);saveShop();if(x)toast('Убрано: '+x.n,()=>{S.shop.extra.splice(i,0,x);saveShop()})}
  else if(a==='month'){S.mon=null;openSheet(monthView,1)}
  else if(a==='mon'){const b=S.mon?parse(S.mon+'-01'):new Date();const nb=new Date(b.getFullYear(),b.getMonth()+(+t.dataset.d),1);S.mon=nb.getFullYear()+'-'+pad(nb.getMonth()+1);refreshSheet()}
- else if(a==='cookday'){const k=t.dataset.date;const c=S.cook[k];if(!c)S.cook[k]='v';else if(c==='v')S.cook[k]='k';else delete S.cook[k];store.setDoc('cookdays/main',{d:S.cook});render()}
+ else if(a==='cookday'){const k=t.dataset.date;const ids=ppl().map(p=>p.id);const i=ids.indexOf(S.cook[k]);if(i+1<ids.length)S.cook[k]=ids[i+1];else delete S.cook[k];ks.setDoc('cookdays/main',{d:S.cook});render()}
  else if(a==='price')openSheet(priceView(t.dataset.id));
  else if(a==='psave'){const id=t.dataset.id,it=ALL[id];const num=x=>{const v=$(x);if(!v||v.value.trim()==='')return null;const n=parseFloat(String(v.value).replace(',','.'));return isFinite(n)&&n>=0?n:null};
   const o={};const pc=num('#pc');if(it.pack){const pp=num('#pp');if(pp&&pp!==it.pack[0])o.pack=pp;if(pc!=null&&pc!==it.pack[1])o.price=pc}else if(pc!=null&&pc!==it.kg)o.price=pc;
-  if(Object.keys(o).length)S.prices[id]=o;else delete S.prices[id];store.setDoc('prices/main',{p:S.prices});
+  if(Object.keys(o).length)S.prices[id]=o;else delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});
   const q=num('#pq');S.shop.qty=S.shop.qty||{};if(q!=null&&q>0)S.shop.qty[id]=q;else delete S.shop.qty[id];saveShop();closeSheet();toast('Сохранено')}
- else if(a==='preset'){const id=t.dataset.id;delete S.prices[id];store.setDoc('prices/main',{p:S.prices});if(S.shop.qty)delete S.shop.qty[id];saveShop();closeSheet()}
- else if(a==='cookv'){const k=t.dataset.date;if(S.cook[k]==='v')delete S.cook[k];else{S.cook[k]='v';party()}store.setDoc('cookdays/main',{d:S.cook});render()}
+ else if(a==='preset'){const id=t.dataset.id;delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});if(S.shop.qty)delete S.shop.qty[id];saveShop();closeSheet()}
+ else if(a==='cookv'){const k=t.dataset.date;const q=cookQ();if(q){if(S.cook[k]===q.id)delete S.cook[k];else{S.cook[k]=q.id;party()}}else{const ids=ppl().map(p=>p.id);const i=ids.indexOf(S.cook[k]);if(i+1<ids.length){S.cook[k]=ids[i+1];party()}else delete S.cook[k]}ks.setDoc('cookdays/main',{d:S.cook});render()}
  else if(a==='newrec'){RE={id:null,n:'',cat:'main',portions:4,items:[],time:'',steps:'',man:null,cur:'x_pelmeni'};openSheet(recEditView)}
  else if(a==='editrec'){const r=S.urec.find(x=>x.id===t.dataset.id);if(!r)return;const d=D['u_'+r.id];RE={id:r.id,n:d.n,cat:d.cat,portions:d.portions,items:d.items.slice(),time:d.time==='—'?'':d.time,steps:d.steps.join('\n'),man:d.items.length?null:d.man,cur:'breast'};openSheet(recEditView)}
- else if(a==='delrec'){const r=S.urec.find(x=>x.id===t.dataset.id);if(!r)return;const keep=Object.assign({},r);delete keep.id;store.del('recipes',r.id);closeSheet();toast('Рецепт удалён',()=>store.add('recipes',keep))}
+ else if(a==='delrec'){const r=S.urec.find(x=>x.id===t.dataset.id);if(!r)return;const keep=Object.assign({},r);delete keep.id;ks.del('recipes',r.id);closeSheet();toast('Рецепт удалён',()=>ks.add('recipes',keep))}
  else if(a==='radd'){keepRE();const id=$('#rp').value,n=parseFloat(String($('#rqn').value).replace(',','.'))||0;if(n<=0)return;const am=amountOf(id,n,$('#rqu').value);RE.items.push([id,am.g]);RE.cur=id;refreshSheet()}
  else if(a==='rrm'){keepRE();RE.items.splice(+t.dataset.i,1);refreshSheet()}
  else if(a==='rsave'){keepRE();const n=RE.n.trim().slice(0,80);if(!n){$('#rn').focus();return}
   if(!RE.items.length&&!(RE.man&&RE.man[0]>0)){$('#rmk')&&$('#rmk').focus();toast('Добавь продукты или калории порции');return}
   const doc={n,cat:RE.cat,portions:Math.max(1,RE.portions),items:RE.items.map(([i,g])=>({i,g:R(g)})),time:RE.time.trim().slice(0,30),steps:RE.steps.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,30),man:RE.items.length?null:RE.man,ts:Date.now()};
-  if(RE.id)store.setDoc('recipes/'+RE.id,doc);else store.add('recipes',doc);closeSheet();toast('Рецепт сохранён — он уже в пуле недели')}
- else if(a==='opt'){const id=t.dataset.id,k=+t.dataset.k,i=+t.dataset.i;const cur=(S.var[id]||[]).slice();const n=D[id].opts.length;while(cur.length<n)cur.push(0);cur[k]=i;S.var[id]=cur;VAR=S.var;store.setDoc('variants/main',{v:S.var});render();refreshSheet()}
+  if(RE.mode==='mod'){ks.setDoc('mods/'+RE.did,{id:RE.did,n,portions:doc.portions,items:doc.items,time:doc.time,steps:doc.steps,ts:doc.ts});closeSheet();toast('Изменено только для вашей кухни');return}
+  if(RE.id)ks.setDoc('recipes/'+RE.id,doc);else ks.add('recipes',doc);closeSheet();toast('Рецепт сохранён — он уже в пуле недели')}
+ else if(a==='opt'){const id=t.dataset.id,k=+t.dataset.k,i=+t.dataset.i;const cur=(S.var[id]||[]).slice();const n=D[id].opts.length;while(cur.length<n)cur.push(0);cur[k]=i;S.var[id]=cur;VAR=S.var;ks.setDoc('variants/main',{v:S.var});render();refreshSheet()}
  else if(a==='toplan'){placeDish(t.dataset.id,+t.dataset.i,'pool');toast('Поставлено на '+DOW[+t.dataset.i])}
  else if(a==='day'){S.day=+t.dataset.i;render()}
  else if(a==='mult'){S.mult=+t.dataset.v;render()}
  else if(a==='addd'){const d=D[t.dataset.id];addLog(dname(d),portion(d,S.who).map(x=>x*S.mult),multTxt())}
  else if(a==='adds'){const s=SNACKS.find(x=>x.id===t.dataset.id);addLog(s.n,macros(s.items,S.mult),multTxt())}
  else if(a==='addc'){const c=S.custom.find(x=>x.id===t.dataset.id);if(c)addLog(String(c.label),[c.kcal,c.p,c.f,c.c].map(x=>(+x||0)*S.mult),multTxt()||'своё')}
- else if(a==='del'){const id=t.dataset.id;const e=S.log.find(x=>x.id===id);store.del('log',id);if(e)toast('Удалено: '+e.label,()=>{const c=Object.assign({},e);delete c.id;store.add('log',c)})}
+ else if(a==='del'){const id=t.dataset.id;const e=S.log.find(x=>x.id===id);ks.del('log',id);if(e)toast('Удалено: '+e.label,()=>{const c=Object.assign({},e);delete c.id;ks.add('log',c)})}
  else if(a==='rf'){S.rf=t.dataset.v;render()}
  else if(a==='got'){const id=t.dataset.id;if(S.shop.got[id])delete S.shop.got[id];else S.shop.got[id]=true;saveShop()}
  else if(a==='home'){const id=t.dataset.id;if(S.shop.home[id])delete S.shop.home[id];else S.shop.home[id]=true;saveShop()}
@@ -1106,13 +1315,32 @@ document.addEventListener('click',ev=>{
   B.name=$('#bname').value;B.save=$('#bsave').checked;B.items.push({id,g,txt});B.cur=id;refreshSheet()}
  else if(a==='brm'){B.name=$('#bname').value;B.save=$('#bsave').checked;B.items.splice(+t.dataset.i,1);refreshSheet()}
  else if(a==='bdone'){const name=($('#bname').value||'Своё блюдо').trim().slice(0,80);const m=macros(B.items.map(x=>[x.id,x.g]));addLog(name,m,'своё');
-  if($('#bsave').checked)store.add('custom',{label:name,kcal:R(m[0]),p:R(m[1]),f:R(m[2]),c:R(m[3])});closeSheet()}
+  if($('#bsave').checked)ks.add('custom',{label:name,kcal:R(m[0]),p:R(m[1]),f:R(m[2]),c:R(m[3])});closeSheet()}
  else if(a==='manual')openSheet(manualView);
- else if(a==='mdone'){const name=($('#mn').value||'Без названия').trim().slice(0,80);const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const m=[num('#mk'),num('#mp'),num('#mf'),num('#mc')];if(!m[0]){$('#mk').focus();return}addLog(name,m,'вручную');if($('#msave').checked)store.add('custom',{label:name,kcal:m[0],p:m[1],f:m[2],c:m[3]});closeSheet()}
+ else if(a==='mdone'){const name=($('#mn').value||'Без названия').trim().slice(0,80);const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const m=[num('#mk'),num('#mp'),num('#mf'),num('#mc')];if(!m[0]){$('#mk').focus();return}addLog(name,m,'вручную');if($('#msave').checked)ks.add('custom',{label:name,kcal:m[0],p:m[1],f:m[2],c:m[3]});closeSheet()}
  else if(a==='export'){doExport()}
+ else if(a==='padd'){PE=newPerson();openSheet(personView)}
+ else if(a==='person'){const p=(S.settings&&S.settings.people||[]).find(x=>x.id===t.dataset.id)||ppl().find(x=>x.id===t.dataset.id);if(!p)return;PE=JSON.parse(JSON.stringify(p));openSheet(personView)}
+ else if(a==='pcol'){keepPE();PE.color=t.dataset.c;refreshSheet()}
+ else if(a==='persave'){savePerson()}
+ else if(a==='pdel'){delPerson()}
+ else if(a==='wadd'){addWeight()}
+ else if(a==='wdel'){ks.del('weights',t.dataset.id)}
+ else if(a==='kopen'){closeSheet();openKitchen(t.dataset.id)}
+ else if(a==='kcreate'){kCreate()}
+ else if(a==='migrate'){migrate()}
+ else if(a==='madd'){memberAdd()}
+ else if(a==='mdel'){memberDel(t.dataset.e)}
+ else if(a==='modrec'){modStart(t.dataset.id)}
+ else if(a==='unmod'){ks.del('mods',t.dataset.id);closeSheet();toast('Блюдо снова как в общей книге')}
+ else if(a==='share'){shareRec(t.dataset.id)}
+ else if(a==='unshare'){store.del('shared',t.dataset.id);closeSheet();toast('Убрано из общей книги')}
+ else if(a==='pok'){approve(t.dataset.id)}
+ else if(a==='pno'){store.del('pending',t.dataset.id);toast('Отклонено')}
+ else if(a==='pview'){const p=(S.pending||[]).find(x=>x.id===t.dataset.id);if(p)openSheet(()=>pendingPreview(p))}
  else if(a==='accadd'){const v=($('#accin').value||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){toast('Впишите почту целиком, например name@gmail.com');return}
   if(OWNERS().includes(v)||(S.access||[]).includes(v)){toast('Эта почта уже в списке');return}
-  saveAccess([...(S.access||[]),v]).then(()=>toast('Доступ открыт: '+v))}
+  saveAccess([...(S.access||[]),v]).then(()=>toast('Теперь '+v+' может завести свою кухню'))}
  else if(a==='accdel'){const v=t.dataset.e;saveAccess((S.access||[]).filter(x=>x!==v)).then(()=>toast('Доступ закрыт: '+v,()=>saveAccess([...(S.access||[]),v])))}
  else if(a==='importv'){openSheet(importView)}
  else if(a==='dl'){saveExport()}
@@ -1120,7 +1348,8 @@ document.addEventListener('click',ev=>{
  else if(a==='cp'){const ta=$('#expta');ta.select();try{navigator.clipboard.writeText(ta.value).then(()=>toast('Скопировано'),()=>{document.execCommand('copy');toast('Скопировано')})}catch(e){document.execCommand('copy');toast('Скопировано')}}
  else if(a==='doimp'){doImport($('#impta').value)}
  else if(a==='logout'){closeSheet();firebase.auth().signOut()}
- else if(a==='sdone'){const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const s={names:{v:$('#nv').value.trim().slice(0,30)||DEFAULTS.names.v,k:$('#nk').value.trim().slice(0,30)||DEFAULTS.names.k},targets:{v:[0,1,2,3].map(i=>num('#tv'+i)),k:[0,1,2,3].map(i=>num('#tk'+i))},budget:num('#bud')||DEFAULTS.budget,kf:Math.min(150,Math.max(20,num('#kf')||DEFAULTS.kf))};S.settings=s;store.setDoc('settings/main',s);closeSheet();render();toast('Сохранено')}
+ else if(a==='sdone'){const num=id=>parseFloat(String($(id).value).replace(',','.'))||0;const st=Object.assign({},S.settings||{people:[]});st.budget=num('#bud')||DEFAULTS.budget;st.cookQuick=$('#cq').value||null;st.cookLabel=($('#cl').value||'').trim().slice(0,40)||null;S.settings=st;ks.setDoc('settings/main',st);
+  const kn=$('#kn_in')&&!$('#kn_in').disabled?$('#kn_in').value.trim().slice(0,40):'';if(S.fb&&kn&&S.kdoc&&kn!==S.kdoc.name)saveKitchen({name:kn});closeSheet();render();toast('Сохранено')}
 });
 document.addEventListener('change',ev=>{if(ev.target.id==='rp'){RE.cur=ev.target.value;$('#rqu').innerHTML=qUnits(RE.cur);return}if(ev.target.id==='rc'){keepRE();refreshSheet();return}if(ev.target.id==='qp'){S.qp=ev.target.value;$('#qu').innerHTML=qUnits(S.qp);return}if(ev.target.id==='bp'){B.cur=ev.target.value;B.name=$('#bname').value;B.save=$('#bsave').checked;refreshSheet()}});
 document.addEventListener('input',ev=>{if(ev.target.id==='rq'){S.rq=ev.target.value;render()}});
@@ -1149,10 +1378,9 @@ async function fbBoot(){
  S.fb=true;
  firebase.auth().getRedirectResult().catch(e=>{const t=authErr(e);if(t)setTimeout(()=>{const el=$('#lerr');if(el)el.textContent=t},300)});
  firebase.auth().onAuthStateChanged(u=>{
-  if(!u){unsubs.forEach(x=>{try{x()}catch(e){}});wkUnsubs.forEach(x=>{try{x()}catch(e){}});unsubs=[];wkUnsubs=[];store=Local;DB=null;S.mode='local';S.user=null;showLogin();return}
-  hideLogin();S.user=u.email;DB=fs;store=Remote;S.mode='db';
-  loadTimer=setTimeout(()=>{stale=true;banner()},10000);
-  subscribeAll();render();
+  if(!u){[...unsubs,...wkUnsubs,...gUnsubs].forEach(x=>{try{x()}catch(e){}});unsubs=[];wkUnsubs=[];gUnsubs=[];store=Local;DB=null;S.mode='local';S.user=null;S.kid=null;S.kdoc=null;S.kitchens=null;showLogin();return}
+  hideLogin();S.user=u.email;S.uname=(u.displayName||'').split(' ')[0];DB=fs;store=Remote;S.mode='db';S.kid=null;
+  startKitchens();render();
  });
 }
 (async()=>{
