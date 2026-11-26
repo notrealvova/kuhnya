@@ -390,7 +390,7 @@ const T = [['toast',27]];
 const DISHES = [
  // ---------- Наши ----------
  {id:'grill',cat:'main',src:'own',n:'Курица запечённая',time:'~40 мин',tag:'общее',meals:3,
-  H:[['breast',180]],opts:[{t:'Гарнир',c:[['рис',[['rice',50]]],['макароны',[['pasta',80]]]]}],
+  H:[['breast',180]],opts:[{t:'Гарнир',c:[['рис',[['rice',80]]],['макароны',[['pasta',80]]]]}],
   steps:['Грудку разрезать вдоль на пласты толщиной в палец. Натереть ложкой масла, чесноком, паприкой, солью и каплей острого соуса, оставить на 10 минут.','Аэрогриль 190–200 °C, 15–18 минут, на середине перевернуть. Если не влезает — в два захода.','Пока жарится курица, сварить гарнир — рис или макароны.']},
  {id:'thigh1',cat:'main',src:'own',n:'Бедро запечённое',time:'~50 мин',tag:'наши',meals:2,
   H:[['thigh',180],['oil',4]],opts:[{t:'Гарнир',c:[['рис',[['rice',80]]],['тушёная капуста',[['cab',300],['oil',17],['carr',100],['onion',100],['tpaste',30]]],['макароны',[['pasta',100]]],['гречка',[['buck',80]]]]},{t:'Соус',c:[['томатный',[['tpaste',60],['garlic',5],['hot',15]]],['сметанный',[['smet',100],['cuc',120],['garlic',5]]]]}],
@@ -1149,7 +1149,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- <p class="note" style="margin-top:16px">Версия 1.1</p>
+ <p class="note" style="margin-top:16px">Версия 1.11</p>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
