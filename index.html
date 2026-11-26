@@ -95,6 +95,13 @@ section{margin-bottom:22px}
 .shoph{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:end}
 .srow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .srow:first-of-type{border-top:0}
+.srow .warn{display:block;font-size:13px;color:var(--tom);margin-top:2px}
+.srow .cb:disabled{opacity:.35}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.hrow:first-of-type{border-top:0}
+.hrow .n b{display:block;font-size:15px;line-height:1.3}.hrow .n span{font-size:13px;color:var(--mute)}
+.hst{display:flex;gap:6px;align-items:center}.hst .mv{min-width:44px;min-height:44px;font-size:20px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}.hst .mv:disabled{opacity:.35}
+.hst input{width:84px;min-height:44px;text-align:center}
 .cb{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);display:grid;place-items:center;font-size:20px;color:transparent}
 .srow.got .cb{background:var(--basil2);border-color:var(--basil2);color:#fff}
 .srow.got .n,.srow.home .n{text-decoration:line-through;opacity:.55}
@@ -257,7 +264,7 @@ const ING = {
  tortilla:{n:'Тортильи',g:'bread',k:[300,8,7,50],pack:[270,130],packName:'упаковка (6 шт)',u:[[['тортилья','тортильи','тортилий'],45]]},
  puff:{n:'Слоёное тесто',g:'bread',k:[380,6,24,36],pack:[500,200],u:[[['пласт','пласта','пластов'],250]]},
  pasta:{sh:'макарон',n:'Макароны',g:'groc',k:[350,12,1.5,71],pack:[450,85],u:[[['кружка','кружки','кружек'],100]],hint:'кружка ≈ 250 мл сухих рожков'},
- rice:{sh:'риса',n:'Рис',g:'groc',k:[340,7,1,75],pack:[900,110],u:[[['кружка','кружки','кружек'],200]]},
+ rice:{sh:'риса',n:'Рис',g:'groc',k:[340,7,1,75],pack:[800,100],u:[[['кружка','кружки','кружек'],200]]},
  buck:{sh:'гречки',n:'Гречка',g:'groc',k:[330,12.6,3.3,62],pack:[900,100],u:[[['кружка','кружки','кружек'],180]]},
  beans:{sh:'фасоли',n:'Фасоль белая сухая',g:'groc',k:[300,21,2,47],pack:[450,120],u:[[['кружка','кружки','кружек'],180]]},
  manka:{last:1,n:'Манка',g:'groc',k:[333,10.3,1,70.6],pack:[500,70],u:[[SP[0],15]]},
@@ -579,8 +586,13 @@ const fac=who=>{const p=PEOPLE.find(x=>x.id===who);return p?p.f:1};
 // сумма долей: 'b' — завтраки, 'ld' — обеды/ужины (основное и супы)
 function SUMF(m){return PEOPLE.reduce((t,p)=>{const ml=p.meals||{b:1,l:1,d:1};return t+p.f*(m==='b'?(ml.b?1:0):((ml.l?1:0)+(ml.d?1:0))/2)},0)}
 let VAR={}; // выбранные гарниры/соусы: {dishId:[i,j,...]}
+// Учёт остатков: мясо и рыбу готовят целым лотком — порции недели пересчитываются под весь лоток
+let MSCI={},MSCD=new Set(),RAWN=0;
+const TRAYM=new Set(['breast','thigh','mince','turkey','pork','pollock','hake','cod','beef','mincepb','turkfil','liver','shrimp']);
+for(const id of TRAYM){const it=ALL[id];if(it&&!it.pack&&it.kg){it.pack=[900,Math.round(it.kg*0.9)];it.tray=1}}
 function choice(d){return (d.opts||[]).map((o,k)=>{const v=(VAR[d.id]||[])[k];return Number.isInteger(v)&&o.c[v]?v:0})}
-function full(d){const base=d.cat==='soup'?d.S:d.H;if(!d.opts)return base;const ch=choice(d);return base.concat(...d.opts.map((o,k)=>o.c[ch[k]][1]))}
+function full0(d){const base=d.cat==='soup'?d.S:d.H;if(!d.opts)return base;const ch=choice(d);return base.concat(...d.opts.map((o,k)=>o.c[ch[k]][1]))}
+function full(d){const a=full0(d);if(RAWN||!MSCD.has(d.id))return a;return a.map(([i,g])=>MSCI[i]?[i,g*MSCI[i]]:[i,g])}
 function dname(d){if(!d.opts)return d.n;const ch=choice(d);const t=d.opts.map((o,k)=>o.c[ch[k]][0]).filter(x=>!['без','ничего','без сливок'].includes(x)).join(', ');return t?d.n+' · '+t:d.n}
 function macros(items, mult=1){
   const t=[0,0,0,0];
@@ -630,7 +642,8 @@ function buy(id,g){
     return {txt:n+' × '+name,cost:n*pc};}
   const kg=Math.max(0.1,Math.ceil(g/100)/10);return {txt:String(kg).replace('.',',')+' кг',cost:Math.round(kg*it.kg)};
 }
-function weekNeed(plan){
+function weekNeed(plan){RAWN++;try{return weekNeed0(plan)}finally{RAWN--}}
+function weekNeed0(plan){
   const acc={};const add=o=>{for(const k in o)acc[k]=(acc[k]||0)+o[k];};
   for(const id of plan.m) add(batchItems(D[id]));
   // блюда вне набора (терияки, свои рецепты) попадают в покупки по числу постановок в план
@@ -666,7 +679,7 @@ const todayIdx=()=>(new Date().getDay()+6)%7;
 
 // ---------- состояние ----------
 const S={rsec:LS.get('rsec','common'),rcat:LS.get('rcat','all'),kid:null,kdoc:null,kitchens:null,mods:{},weights:[],shared:[],pending:[],who:LS.get('who','v'),tab:LS.get('tab','week'),wk:todayKey(),day:todayIdx(),
- urec:[],var:{},prices:{},cook:{},mon:null,plan:null,log:[],shop:{got:{},home:{}},settings:null,custom:[],mode:'local',ro:false,mult:1,rf:'all',rq:''};
+ urec:[],var:{},prices:{},cook:{},mon:null,plan:null,log:[],shop:{got:{},home:{}},stock:{},settings:null,custom:[],mode:'local',ro:false,mult:1,rf:'all',rq:''};
 const kTitle=()=>((S.settings&&S.settings.title)||(S.kdoc&&S.kdoc.name)||'Кухня');
 const cfg=()=>{const s=S.settings||{};return {budget:+s.budget||DEFAULTS.budget}};
 // ---------- люди кухни ----------
@@ -716,7 +729,7 @@ const plan=()=>{const p=S.plan||defPlan(S.wk);[...(p.m||[]),p.soup,p.bake,...Obj
 // ---------- хранилище: общая база или этот телефон ----------
 const chains={};
 const queue=(p,fn)=>chains[p]=(chains[p]||Promise.resolve()).then(fn).catch(e=>{if(e&&e.code==='invalid_argument'){S.ro=true;banner()}else if(e&&e.code==='permission-denied')toast('Нет доступа к базе — этой почты нет в списке');else toast('Не сохранилось, попробуй ещё раз')});
-const LOCAL_DOCC=new Set(['settings','variants','prices','cookdays','plans','shop','favs','pantry','access','roles']);
+const LOCAL_DOCC=new Set(['settings','variants','prices','cookdays','plans','shop','favs','pantry','stock','access','roles']);
 const Local={
  watchDoc(p,cb){const f=()=>cb(LS.get('d:'+p,null));f();(this.l[p]=this.l[p]||[]).push(f);return()=>{this.l[p]=this.l[p].filter(x=>x!==f)}},
  setDoc(p,o){const m=p.match(/^([^/]+)\/(.+)$/);if(m&&LOCAL_DOCC.has(m[1])){LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()}if(m){const k='c:'+m[1];const all=LS.get(k,{});all[m[2]]=o;LS.set(k,all);(this.l[k]||[]).forEach(f=>f());return Promise.resolve()}LS.set('d:'+p,o);(this.l[p]||[]).forEach(f=>f());return Promise.resolve()},
@@ -743,6 +756,7 @@ function subscribeAll(){
  unsubs.push(ks.watchDoc('prices/main',d=>{S.prices=JSON.parse(JSON.stringify((d&&d.p)||{}));applyNames();render()}));
  unsubs.push(ks.watchDoc('cookdays/main',d=>{S.cook=JSON.parse(JSON.stringify((d&&d.d)||{}));render()}));
  unsubs.push(ks.watchDoc('pantry/main',d=>{S.pantry=JSON.parse(JSON.stringify((d&&d.h)||{}));render()}));
+ unsubs.push(ks.watchDoc('stock/main',d=>{S.stock=JSON.parse(JSON.stringify((d&&d.s)||{}));render()}));
  unsubs.push(ks.watchDoc('favs/main',d=>{S.favs=JSON.parse(JSON.stringify((d&&d.ids)||{}));if(S.tab==='recipes')render();if(sheetOpen)refreshSheet()}));
  unsubs.push(ks.watchQ('products',null,null,a=>{S.prods=a;loadProducts();loadUserRecipes();applyMods();render()}));
  unsubs.push(ks.watchQ('mods',null,null,a=>{S.mods=Object.fromEntries(a.map(m=>[m.id,m]));applyMods();render()}));
@@ -782,7 +796,7 @@ function renderTop(){
  const m=parse(S.wk),e=addDays(m,6);
  const lbl=m.getMonth()===e.getMonth()?`${m.getDate()}–${e.getDate()} ${MON[e.getMonth()]}`:`${m.getDate()} ${MON[m.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]}`;
  $('#wklbl').innerHTML=`${lbl}<small>${S.wk===todayKey()?'эта неделя · ':''}набор ${plan().tpl+1} из 4</small>`;
- const tabs=[['week','Неделя','M4 6h16M4 12h16M4 18h10'],['diary','Дневник','M5 4h14v16H5zM9 8h6M9 12h6M9 16h3'],['recipes','Рецепты','M6 3h12v18l-6-4-6 4z'],['shop','Покупки','M5 7h14l-1.5 11h-11zM9 7a3 3 0 0 1 6 0']];
+ const tabs=[['week','Неделя','M4 6h16M4 12h16M4 18h10'],['diary','Дневник','M5 4h14v16H5zM9 8h6M9 12h6M9 16h3'],['recipes','Рецепты','M6 3h12v18l-6-4-6 4z'],['shop','Покупки','M5 7h14l-1.5 11h-11zM9 7a3 3 0 0 1 6 0'],['home','Дома','M4 11l8-7 8 7v9H4zM10 20v-5h4v5']];
  $('#tabs').innerHTML=tabs.map(([id,l,d])=>`<button data-act="tab" data-t="${id}" ${S.tab===id?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>${l}</button>`).join('');
 }
 function banner(){
@@ -822,7 +836,7 @@ function renderWeek(){
  const cards=SLOT.map(([s,l])=>{const d=slotDish(p,s);const c=!!p.cooked[s];
   if(d.gone)return `<div class="card dish"><div class="tags"><span class="tag">${l}</span><span class="tag tt">удалено</span></div><h3>Блюдо удалено</h3><p class="note" style="margin:0">Этот рецепт удалили. Он не считается в калориях и покупках — замените его другим.</p><div class="acts"><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button></div></div>`;
   return `<div class="card dish${c?' cooked':''}"><div class="tags"><span class="tag">${l}</span>${srcTag(d)}<span class="tag">${esc(d.time)}</span></div>
-  <h3>${esc(dname(d))}</h3>${noteOf(d.id)?`<p class="note" style="margin:0"><b>Заметка:</b> ${esc(noteOf(d.id))}</p>`:''}<div class="kb">${kbLine(d)}</div>
+  <h3>${esc(dname(d))}</h3>${trayTxt(d)?`<p class="note" style="margin:0">Целый лоток: ${esc(trayTxt(d))} — порции уже пересчитаны</p>`:''}${noteOf(d.id)?`<p class="note" style="margin:0"><b>Заметка:</b> ${esc(noteOf(d.id))}</p>`:''}<div class="kb">${kbLine(d)}</div>
   <div class="acts"><button class="btn sm" data-act="recipe" data-id="${d.id}">Рецепт</button><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button>
   <button class="btn sm ${c?'done':''}" data-act="cook" data-s="${s}" aria-pressed="${c}">${c?'✓ Приготовлено':'Приготовила'}</button></div></div>`}).join('');
  const done=SLOT.filter(([s])=>p.cooked[s]).length;
@@ -1039,47 +1053,108 @@ function renderRecipes(){
 `;
 }
 
-function priceInfo(id){if(!ALL[id])return {pack:1,price:0,kg:0,own:false};const it=ALL[id],o=S.prices[id]||{};if(it.pack)return {pack:+o.pack||it.pack[0],price:o.price!=null?+o.price:it.pack[1],own:o.price!=null||o.pack!=null};return {kg:o.price!=null?+o.price:it.kg,own:o.price!=null}}
+function priceInfo(id){if(!ALL[id])return {pack:1,price:0,kg:0,own:false};const it=ALL[id],o=S.prices[id]||{};if(it.tray){const pk=+o.pack||it.pack[0],kg=o.price!=null?+o.price:it.kg;return {pack:pk,kg,price:R(kg*pk/1000),own:o.price!=null||o.pack!=null}}
+ if(it.pack)return {pack:+o.pack||it.pack[0],price:o.price!=null?+o.price:it.pack[1],own:o.price!=null||o.pack!=null};return {kg:o.price!=null?+o.price:it.kg,own:o.price!=null}}
+// своё количество: для мяса лотками (старые записи в кг переводим в лотки)
+function qOf(id){const it=ALL[id];if(!it)return null;const sh=S.shop||{};
+ if(it.tray){const t=sh.qtt&&sh.qtt[id];if(t!=null)return t;const k=sh.qty&&sh.qty[id];return k!=null?Math.max(1,Math.round(k*1000/priceInfo(id).pack)):null}
+ return sh.qty&&sh.qty[id]!=null?sh.qty[id]:null}
 function buyApp(id,g){
  const it=ALL[id];
- const pi=priceInfo(id),q=S.shop.qty&&S.shop.qty[id];
- if(it.pack){const pg=pi.pack,pc=pi.price;const name=(it.packName&&!S.prices[id]?.pack)?it.packName:'уп. '+grams(pg,it.ml);
+ const pi=priceInfo(id),q=qOf(id);
+ if(it.pack){const pg=pi.pack,pc=pi.price;const name=(it.packName&&!S.prices[id]?.pack)?it.packName:(it.tray?'лоток ':'уп. ')+grams(pg,it.ml);
   if(q!=null)return {txt:String(q).replace('.',',')+' × '+name,cost:R(q*pc),own:pi.own,q:1,n:q};
   if(it.last)return {txt:'1 уп. — хватит на несколько недель',cost:R(Math.min(1,g/pg)*pc),own:pi.own,n:1};
   const n=Math.max(1,Math.ceil(g/pg-0.12));return {txt:n+' × '+name,cost:n*pc,own:pi.own,n}}
  const kg=q!=null?q:Math.max(0.1,Math.ceil(g/100)/10);return {txt:String(kg).replace('.',',')+' кг',cost:R(kg*pi.kg),own:pi.own,q:q!=null?1:0,n:kg}}
 function priceView(id){return ()=>{
- const it=ALL[id],g=weekNeed(plan())[id]||0,v=vibe(id,g),pi=priceInfo(id),by=buyApp(id,g),q=S.shop.qty&&S.shop.qty[id];
+ const it=ALL[id],g=weekNeed(plan())[id]||0,v=vibe(id,g),pi=priceInfo(id),by=buyApp(id,g),q=qOf(id);
  const pack=!!it.pack;
  return `<h2>${esc(it.n)}</h2><p class="note">По рецептам на эту неделю нужно ${v.eye} (${v.gr}).</p>
  <div class="field">Как называется у вас<input id="pnm" value="${esc(it.n)}" maxlength="60" placeholder="${esc(BASEN[id]||it.n)}"></div>
- ${pack?`<div class="row2"><div class="field">Упаковка, ${it.ml?'мл':'г'}<input id="pp" type="number" inputmode="decimal" value="${pi.pack}"></div><div class="field">Цена за упаковку, ₽<input id="pc" type="number" inputmode="decimal" value="${pi.price}"></div></div>`
+ ${it.tray?`<div class="row2"><div class="field">Лоток, г<input id="pp" type="number" inputmode="decimal" value="${pi.pack}"></div><div class="field">Цена за кг, ₽<input id="pc" type="number" inputmode="decimal" value="${pi.kg}"></div></div><p class="note" style="margin-top:-4px">Лоток ≈ ${fmt(pi.price)} ₽.</p>`:pack?`<div class="row2"><div class="field">Упаковка, ${it.ml?'мл':'г'}<input id="pp" type="number" inputmode="decimal" value="${pi.pack}"></div><div class="field">Цена за упаковку, ₽<input id="pc" type="number" inputmode="decimal" value="${pi.price}"></div></div>`
  :`<div class="field">Цена за кг, ₽<input id="pc" type="number" inputmode="decimal" value="${pi.kg}"></div>`}
  <p class="note" style="margin-top:-4px">Цена и упаковка запомнятся на все недели.</p>
- <div class="field">Сколько берём на этой неделе, ${pack?'упаковок':'кг'}<input id="pq" type="number" inputmode="decimal" step="${pack?1:0.1}" value="${q!=null?q:''}" placeholder="авто: ${String(by.n).replace('.',',')}"></div>
+ <div class="field">Сколько берём на этой неделе, ${it.tray?'лотков':pack?'упаковок':'кг'}<input id="pq" type="number" inputmode="decimal" step="${pack?1:0.1}" value="${q!=null?q:''}" placeholder="авто: ${String(by.n).replace('.',',')}"></div>
  <p class="note" style="margin-top:-4px">Оставь пустым — посчитаю сам по рецептам.</p>
  <button class="btn pri" data-act="psave" data-id="${id}" style="width:100%;justify-content:center">Сохранить</button>
  ${pi.own||q!=null?`<button class="btn" data-act="preset" data-id="${id}" style="width:100%;justify-content:center;margin-top:8px">Вернуть примерную цену и авто-количество</button>`:''}`}}
 function isHome(id){const it=ALL[id];if(it&&it.pantry){const v=(S.pantry||{})[id];return v===undefined?true:!!v}return !!S.shop.home[id]}
 function shopTotal(p){const need=weekNeed(p);let t=0;for(const id in need){if(isHome(id))continue;t+=buyApp(id,need[id]).cost}return t}
 const shopG=id=>SHOPG_OF[id]||(SHOPG[ALL[id]&&ALL[id].g]?ALL[id].g:'other');
+// ---------- запасы дома ----------
+const STOCKG=new Set(['grain','canned','groc','frozen']);
+const isStock=id=>!!ALL[id]&&!ALL[id].pantry&&!!ALL[id].pack&&(TRAYM.has(id)||STOCKG.has(shopG(id)));
+const stockOf=id=>Math.max(0,+(S.stock||{})[id]||0);
+function saveStock(){ks.setDoc('stock/main',{s:S.stock});render()}
+function addStock(id,g){S.stock=S.stock||{};const v=Math.max(0,stockOf(id)+g);if(v>0.5)S.stock[id]=Math.round(v);else delete S.stock[id]}
+function usedWeek(id){const p=plan();let t=0;for(const s in p.cooked||{}){const c=p.cooked[s];if(c&&c.w&&c.w[id])t+=c.w[id]}return t}
+// сколько было дома до покупок и готовки этой недели
+const baseStock=id=>Math.max(0,stockOf(id)-(+((S.shop.added||{})[id])||0)+usedWeek(id));
+function shopLine(id,need){
+ const q=qOf(id);
+ if(!isStock(id))return {by:buyApp(id,need),base:0,enough:false};
+ const base=baseStock(id),pg=priceInfo(id).pack;
+ if(base<=0||q!=null)return {by:buyApp(id,need),base,enough:false,pg};
+ const short=need-base;
+ if(short<=0||short<0.15*pg)return {by:{txt:'',cost:0,n:0},base,enough:true,pg};
+ return {by:buyApp(id,short),base,enough:false,pg};
+}
+// мясо: весь лоток идёт в блюда недели
+function computeMSC(){
+ MSCI={};MSCD=new Set();const p=plan();const need=weekNeed(p);
+ for(const id in need){if(!TRAYM.has(id)||!isStock(id)||isHome(id)||!need[id])continue;
+  const L=shopLine(id,need[id]),pg=L.pg||priceInfo(id).pack;const r=Math.max(1,Math.ceil(need[id]/pg-0.12));
+  const bought=L.enough?0:(L.by.n||0)*pg;const total=bought+Math.min(L.base,Math.max(0,r*pg-bought));
+  const f=total/need[id];if(total>0&&f>=0.85&&Math.abs(f-1)>0.02)MSCI[id]=f}
+ if(!Object.keys(MSCI).length)return;
+ [...p.m,p.soup,p.bake,...Object.values(p.days||{}).flat()].forEach(x=>{if(x&&D[x])MSCD.add(x)});
+}
+function trayNote(d){if(!MSCD.has(d.id)||d.man||d.cat==='bake')return [];return (full0(d)||[]).filter(([i])=>MSCI[i]).map(([i])=>[i,MSCI[i]]).filter((x,k,a)=>a.findIndex(y=>y[0]===x[0])===k)}
+function trayTxt(d){return trayNote(d).map(([i,f])=>`${ALL[i].n.toLowerCase()} ${f>1?'+':'−'}${Math.abs(R((f-1)*100))}%`).join(', ')}
+function cookOn(p,s){const d=slotDish(p,s);const it=batchItems(d);const w={};
+ for(const id in it){if(!isStock(id))continue;const take=Math.min(stockOf(id),it[id]);if(take>0.5){w[id]=Math.round(take);addStock(id,-take)}}
+ p.cooked[s]={t:Date.now(),w};return Object.keys(w).length}
+function cookOff(p,s){const c=p.cooked[s];let n=0;if(c&&c.w)for(const id in c.w){addStock(id,c.w[id]);n++}delete p.cooked[s];return n}
+function trayLbl(id,g){const pg=priceInfo(id).pack,n=g/pg;const w=ALL[id].tray?['лоток','лотка','лотков']:['упаковка','упаковки','упаковок'];
+ if(Math.abs(n-Math.round(n))<0.02&&n>=0.98)return Math.round(n)+' '+plural(Math.round(n),w);return grams(g,ALL[id].ml)+(n>=0.1?' · ≈ '+niceNum(n).s+' '+plural(niceNum(n).v,w):'')}
+let HSHOW=new Set();
+function syncAdded(id){if(!S.shop.got[id]||!isStock(id))return;S.shop.added=S.shop.added||{};const old=+S.shop.added[id]||0;
+ const L=shopLine(id,weekNeed(plan())[id]||0);const g=(L.enough||isHome(id))?0:(L.by.n||0)*priceInfo(id).pack;
+ if(g!==old){addStock(id,g-old);if(g)S.shop.added[id]=g;else delete S.shop.added[id];ks.setDoc('stock/main',{s:S.stock})}}
+function renderHome(){
+ const need=weekNeed(plan());
+ const ids=Object.keys(ALL).filter(isStock);
+ const show=ids.filter(id=>stockOf(id)>0||need[id]||HSHOW.has(id));
+ const rest=ids.filter(id=>!show.includes(id)).sort((a,b)=>ALL[a].n.localeCompare(ALL[b].n,'ru'));
+ const grp=id=>TRAYM.has(id)?'meat':shopG(id);
+ const og=shopOrder().filter(g=>show.some(id=>grp(id)===g));
+ const row=id=>{const it=ALL[id],g=stockOf(id),pg=priceInfo(id).pack;
+  return `<div class="hrow"><div class="n"><b>${esc(it.n)}</b><span>${g>0?esc(trayLbl(id,g)):'нет дома'}${need[id]?' · на неделю нужно '+esc(grams(need[id],it.ml)):''}</span></div>
+  <div class="hst"><button class="mv" data-act="stk" data-id="${id}" data-d="-1" aria-label="Минус ${it.tray?'лоток':'упаковка'}"${g>0?'':' disabled'}>−</button><input class="stk" data-id="${id}" type="number" inputmode="decimal" min="0" step="${it.tray?100:50}" value="${R(g)}" aria-label="${esc(it.n)}, ${it.ml?'мл':'г'} дома"><button class="mv" data-act="stk" data-id="${id}" data-d="1" aria-label="Плюс ${it.tray?'лоток':'упаковка'} (${grams(pg,it.ml)})">+</button></div></div>`};
+ return `<section class="card"><h2>Дома</h2><p class="note" style="margin:4px 0 0">Долгие продукты и мясо в морозилке. Отметка «куплено» в покупках добавляет сюда купленное, «Приготовила» — списывает по рецепту. Кнопки − и + меняют на одну упаковку (для мяса — лоток), в поле можно вписать точные граммы. Видно всем на этой кухне.</p></section>
+ ${og.map(g=>`<section class="card" style="margin-top:10px"><h3>${g==='meat'?'Мясо и рыба (морозилка)':SHOPG[g]}</h3>${show.filter(id=>grp(id)===g).sort((a,b)=>ALL[a].n.localeCompare(ALL[b].n,'ru')).map(row).join('')}</section>`).join('')||'<section class="card" style="margin-top:10px"><div class="empty">Пока ничего не отмечено. Добавьте продукт ниже или отметьте покупки как купленные.</div></section>'}
+ ${rest.length?`<section class="card" style="margin-top:10px"><div class="field">Добавить продукт<select id="hadd"><option value="" selected disabled>— выберите продукт —</option>${rest.map(id=>`<option value="${id}">${esc(ALL[id].n)}</option>`).join('')}</select></div></section>`:''}`;
+}
 const shopOrder=()=>{const o=((S.settings&&S.settings.shopOrder)||[]).filter(g=>SHOPG[g]);return o.concat(Object.keys(SHOPG).filter(g=>!o.includes(g)))};
 function moveShopG(g,dir){const o=shopOrder();const i=o.indexOf(g),j=i+dir;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];const st=Object.assign({people:[]},S.settings||{});st.shopOrder=o;S.settings=st;ks.setDoc('settings/main',st);render()}
 function renderShop(){
  const p=plan(),need=weekNeed(p),b=cfg().budget;
  const rows={};let tot=0,left=0;
- for(const id in need){const it=ALL[id];const by=buyApp(id,need[id]);const v=vibe(id,need[id]);
-  (rows[shopG(id)]=rows[shopG(id)]||[]).push({id,it,by,v});
-  if(!isHome(id)){tot+=by.cost;if(!S.shop.got[id])left+=by.cost}}
+ for(const id in need){const it=ALL[id];const L=shopLine(id,need[id]);const by=L.by;const v=vibe(id,need[id]);
+  (rows[shopG(id)]=rows[shopG(id)]||[]).push({id,it,by,v,L});
+  if(!isHome(id)&&!L.enough){tot+=by.cost;if(!S.shop.got[id])left+=by.cost}}
  const ex=S.shop.extra||[];for(const x of ex){tot+=+x.price||0;if(!x.got)left+=+x.price||0}
- const og=shopOrder().filter(g=>rows[g]);for(const g in rows)rows[g].sort((a,b)=>(!!(S.shop.got[a.id]||isHome(a.id)))-(!!(S.shop.got[b.id]||isHome(b.id))));
- const groups=og.map((g,gi)=>`<div class="card" style="margin-bottom:10px"><div class="shg"><h3>${SHOPG[g]}</h3><span><button class="mv" data-act="shopmv" data-g="${g}" data-d="-1" aria-label="Отдел выше"${gi?'':' disabled'}>↑</button><button class="mv" data-act="shopmv" data-g="${g}" data-d="1" aria-label="Отдел ниже"${gi<og.length-1?'':' disabled'}>↓</button></span></div>${rows[g].map(({id,it,by,v})=>{
-  const got=!!S.shop.got[id],home=isHome(id);
-  return `<div class="srow${got?' got':''}${home?' home':''}"><button class="cb" data-act="got" data-id="${id}" aria-pressed="${got}" aria-label="Куплено: ${esc(it.n)}">✓</button><div class="n"><b>${esc(it.n)}</b><span>${v.eye} · ${it.pack?esc(by.txt):v.gr+(by.q?' → берём '+esc(by.txt):'')}</span></div><div class="p">${home?'—':`<button class="pr" data-act="price" data-id="${id}">${by.cost||by.own?(by.own?'':'≈ ')+fmt(by.cost)+' ₽':'цена?'} ✎</button>`}${by.own||by.q?`<span class="own">${by.own?'ваша цена':''}${by.own&&by.q?' · ':''}${by.q?'своё кол-во':''}</span>`:''}<button data-act="home" data-id="${id}">${home?'есть дома ✓':'есть дома?'}</button></div></div>`}).join('')}</div>`).join('');
+ const og=shopOrder().filter(g=>rows[g]);for(const g in rows)rows[g].sort((a,b)=>(!!(S.shop.got[a.id]||isHome(a.id)||a.L.enough))-(!!(S.shop.got[b.id]||isHome(b.id)||b.L.enough)));
+ const groups=og.map((g,gi)=>`<div class="card" style="margin-bottom:10px"><div class="shg"><h3>${SHOPG[g]}</h3><span><button class="mv" data-act="shopmv" data-g="${g}" data-d="-1" aria-label="Отдел выше"${gi?'':' disabled'}>↑</button><button class="mv" data-act="shopmv" data-g="${g}" data-d="1" aria-label="Отдел ниже"${gi<og.length-1?'':' disabled'}>↓</button></span></div>${rows[g].map(({id,it,by,v,L})=>{
+  const got=!!S.shop.got[id],home=isHome(id)||L.enough;const f=MSCI[id];
+  const sub=L.enough?'хватает дома · есть '+esc(trayLbl(id,L.base)):(L.base>0&&!isHome(id)?'дома '+esc(grams(L.base,it.ml))+' · берём '+esc(by.txt):it.pack?esc(by.txt):v.gr+(by.q?' → берём '+esc(by.txt):''));
+  const warn=f&&!isHome(id)&&f>1.5?`<span class="warn">Лоток сильно больше нужного: блюда с этим продуктом станут на ${Math.abs(R((f-1)*100))}% ${f>1?'больше':'меньше'}. Количество можно поправить, нажав на цену.</span>`:'';
+  return `<div class="srow${got?' got':''}${home?' home':''}"><button class="cb" data-act="got" data-id="${id}" aria-pressed="${got}" aria-label="Куплено: ${esc(it.n)}"${L.enough?' disabled':''}>✓</button><div class="n"><b>${esc(it.n)}</b><span>${v.eye} · ${sub}</span>${warn}</div><div class="p">${L.enough?'<span class="own">из запасов</span>':home?'—':`<button class="pr" data-act="price" data-id="${id}">${by.cost||by.own?(by.own?'':'≈ ')+fmt(by.cost)+' ₽':'цена?'} ✎</button>`}${by.own||by.q?`<span class="own">${by.own?'ваша цена':''}${by.own&&by.q?' · ':''}${by.q?'своё кол-во':''}</span>`:''}${L.enough?'':`<button data-act="home" data-id="${id}">${home?'есть дома ✓':'есть дома?'}</button>`}</div></div>`}).join('')}</div>`).join('');
  const over=tot>b;
  return `<section class="card"><div class="shoph"><div><h2>Корзина недели</h2><p class="note" style="margin:4px 0 0">Собрана из текущего набора — заменишь блюдо, список пересчитается. Нажми на цену, чтобы поставить свою цену, размер упаковки или количество.</p></div><div style="text-align:right"><div class="big" style="font-size:26px">≈ ${fmt(tot)} ₽</div><div class="note">бюджет ${fmt(b)} ₽</div></div></div>
  <div class="bar${over?' over':''}" style="margin-top:10px"><i style="width:${pct(tot,b)}%"></i></div>
- <p class="note" style="margin:8px 0 0">Осталось купить ≈ ${fmt(left)} ₽. Соусы, мёд, мука, манка, масло, соль и специи посчитаны частью цены — одной упаковки хватает на несколько недель. Запасы помнят отметку «есть дома» между неделями.</p></section>
+ <p class="note" style="margin:8px 0 0">Осталось купить ≈ ${fmt(left)} ₽. Соусы, мёд, мука, манка, масло, соль и специи посчитаны частью цены — одной упаковки хватает на несколько недель. Запасы помнят отметку «есть дома» между неделями. Что лежит дома в граммах — во вкладке «Дома»: оттуда вычитается из списка.</p></section>
  <section style="margin-top:12px"><div class="card" style="margin-bottom:10px"><h3 style="margin-bottom:6px">Свои позиции</h3>
  ${ex.map((x,i)=>`<div class="srow${x.got?' got':''}"><button class="cb" data-act="exgot" data-i="${i}" aria-pressed="${!!x.got}" aria-label="Куплено: ${esc(x.n)}">✓</button><div class="n"><b>${esc(x.n)}</b><span>${esc(x.q||'')}</span></div><div class="p">${+x.price?'≈ '+fmt(+x.price)+' ₽':''}<button data-act="exdel" data-i="${i}">убрать</button></div></div>`).join('')||'<div class="empty">Чего-то не хватает в списке? Добавь сюда — отметки общие.</div>'}
  <div class="exline" style="margin-top:10px"><input id="exn" placeholder="Что купить" aria-label="Что купить"><input id="exq" placeholder="Сколько" aria-label="Сколько"><input id="exp" type="number" inputmode="decimal" placeholder="₽, если знаешь" aria-label="Цена"></div>
@@ -1089,7 +1164,8 @@ function renderShop(){
 function render(){
  if(S.fb&&!S.kid){$('#who').innerHTML='';$('#wklbl').innerHTML='';$('#tabs').innerHTML='';$('#kname').textContent='Кухня';$('#main').innerHTML=onboardView();banner();return}
  renderTop();banner();
- const v={week:renderWeek,diary:renderDiary,recipes:renderRecipes,shop:renderShop}[S.tab]||renderWeek;
+ try{computeMSC()}catch(e){MSCI={};MSCD=new Set()}
+ const v={week:renderWeek,diary:renderDiary,recipes:renderRecipes,shop:renderShop,home:renderHome}[S.tab]||renderWeek;
  const keep=document.activeElement&&document.activeElement.id==='rq';
  $('#main').innerHTML=v();$('#main').classList.toggle('wide',S.tab==='week');
  if(keep){const i=$('#rq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
@@ -1116,7 +1192,7 @@ function recipeView(id){return ()=>{
  const ch=choice(d);
  const optsH=(d.opts||[]).map((o,k)=>`<div style="margin:12px 0 0"><div class="note" style="margin-bottom:6px">${esc(o.t)}</div><div class="chips">${o.c.map((c,i)=>`<button class="chip" data-act="opt" data-id="${d.id}" data-k="${k}" data-i="${i}" aria-pressed="${ch[k]===i}">${esc(c[0])}</button>`).join('')}</div></div>`).join('');
  const pm=parse(S.wk);const planH=`<div style="margin:14px 0 0"><div class="note" style="margin-bottom:6px">Поставить в план этой недели</div><div class="chips">${DOW.map((x,i)=>`<button class="chip day" data-act="toplan" data-id="${d.id}" data-i="${i}">${x}<small>${addDays(pm,i).getDate()}</small></button>`).join('')}</div></div>`;
- return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px"><h2 style="flex:1;margin:0">${esc(d.n)}</h2>${favBtn(d.id)}</div>${noteOf(d.id)?`<div class="hint"><b>Заметка:</b> ${esc(noteOf(d.id))}</div>`:''}${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
+ return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px"><h2 style="flex:1;margin:0">${esc(d.n)}</h2>${favBtn(d.id)}</div>${trayTxt(d)?`<div class="hint">На этой неделе мясо идёт целым лотком: ${esc(trayTxt(d))}. Граммы и калории ниже уже с этим.</div>`:''}${noteOf(d.id)?`<div class="hint"><b>Заметка:</b> ${esc(noteOf(d.id))}</div>`:''}${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
  ${ing?`<h3 style="margin:18px 0 8px">${head}</h3><div class="ing">${ing}</div>`:''}<p class="note">Соль, перец, паприка, уксус — по вкусу.</p>
  ${noHeat(d)?'<div class="eye" style="margin-top:12px"><b>Нужна духовка или аэрогриль</b> — отметьте в настройках, что есть на кухне.</div>':''}${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(devText(s))}</li>`).join('')}</ol>${ovenNote(d)}`:''}${d.tip?`<div class="eye">${esc(devText(d.tip))}</div>`:''}
  <h3 style="margin:18px 0 6px">Заметка кухни</h3><p class="note" style="margin:0 0 6px">Видят все на этой кухне. Например: «Вове без лука», «специй поменьше».</p><textarea id="rnote" maxlength="300" style="width:100%;min-height:64px" placeholder="Ваша заметка к этому блюду">${esc(noteOf(d.id))}</textarea><div class="acts" style="margin-top:8px"><button class="btn" data-act="notesave" data-id="${d.id}">Сохранить заметку</button>${noteOf(d.id)?`<button class="btn" data-act="notedel" data-id="${d.id}">Удалить</button>`:''}</div>${recActs(d)}`}}
@@ -1163,7 +1239,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- <p class="note" style="margin-top:16px">Версия 1.2</p>
+ <p class="note" style="margin-top:16px">Версия 1.3</p>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
@@ -1207,7 +1283,7 @@ function rolesView(){const sup=isSuper();const mods=S.modList||[];
 function unsubAll(){[...unsubs,...wkUnsubs].forEach(u=>{try{u()}catch(e){}});unsubs=[];wkUnsubs=[]}
 function openKitchen(kid){
  unsubAll();S.kid=kid;LS.set('kid',kid);S.kdoc=(S.kitchens||[]).find(k=>k.id===kid)||S.kdoc;
- S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];S.prods=[];S.pantry={};S.favs={};loadProducts();applyMods();loadUserRecipes();syncPeople();
+ S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];S.prods=[];S.pantry={};S.stock={};S.favs={};loadProducts();applyMods();loadUserRecipes();syncPeople();
  loadTimer=setTimeout(()=>{stale=true;banner()},10000);subscribeAll();render()}
 function saveKitchen(patch){const k=Object.assign({},S.kdoc||{},patch);delete k.id;S.kdoc=Object.assign({id:S.kid},k);render();return store.setDoc('kitchens/'+S.kid,k)}
 const incomplete=p=>!p||!p.sex||!(+p.age>0)||!(+p.h>0)||!(+p.w>0);
@@ -1367,9 +1443,9 @@ document.addEventListener('change',ev=>{if(ev.target.id==='ptgon'&&PE){keepPE();
 
 
 // ---------- перенос данных ----------
-const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes','mods','weights','favs','products','pantry'];
+const COLLS=['settings','variants','prices','cookdays','plans','shop','log','custom','recipes','mods','weights','favs','products','pantry','stock'];
 const GCOLLS=['book','shared','sharedProducts','pending'];
-const COLLN={settings:'настройки и люди',variants:'варианты блюд',prices:'цены и названия продуктов',cookdays:'дни готовки',plans:'планы недель',shop:'списки покупок',log:'записи дневника',custom:'быстрые записи',recipes:'свои рецепты',mods:'правки общих блюд под кухню',weights:'записи веса',favs:'избранное',products:'свои продукты',pantry:'что есть дома',book:'правки общей книги',shared:'рецепты общей книги',sharedProducts:'общие продукты',pending:'на одобрении'};
+const COLLN={stock:'запасы дома',settings:'настройки и люди',variants:'варианты блюд',prices:'цены и названия продуктов',cookdays:'дни готовки',plans:'планы недель',shop:'списки покупок',log:'записи дневника',custom:'быстрые записи',recipes:'свои рецепты',mods:'правки общих блюд под кухню',weights:'записи веса',favs:'избранное',products:'свои продукты',pantry:'что есть дома',book:'правки общей книги',shared:'рецепты общей книги',sharedProducts:'общие продукты',pending:'на одобрении'};
 let EXP='',EXPN='';
 const expName=()=>{const d=new Date(),z=n=>String(n).padStart(2,'0');return 'kuhnya-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes())+'.json'};
 function dlBlob(fn){const b=new Blob([EXP],{type:'application/json'});const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();setTimeout(()=>{URL.revokeObjectURL(u);l.remove()},1000)}
@@ -1524,9 +1600,9 @@ document.addEventListener('click',ev=>{
  else if(a==='recipe')openSheet(recipeView(t.dataset.id),1);
  else if(a==='swap')openSheet(swapView(t.dataset.s),1);
  else if(a==='tplpick')openSheet(tplView,1);
- else if(a==='doswap'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;if(s==='soup')p.soup=t.dataset.id;else if(s==='bake')p.bake=t.dataset.id;else p.m[+s[1]]=t.dataset.id;const old=slotDish(plan(),s).id;p.days=p.days||{};for(const k in p.days)p.days[k]=p.days[k].map(x=>x===old?t.dataset.id:x);delete p.cooked[s];savePlan(p);closeSheet();toast('Заменено, корзина обновлена')}
- else if(a==='dotpl'){const i=+t.dataset.i;const tp=TEMPLATES[i];savePlan({tpl:i,m:[...tp.m],soup:tp.soup,bake:tp.bake,cooked:{},days:{}});closeSheet()}
- else if(a==='cook'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;if(p.cooked[s])delete p.cooked[s];else p.cooked[s]=Date.now();savePlan(p)}
+ else if(a==='doswap'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;if(s==='soup')p.soup=t.dataset.id;else if(s==='bake')p.bake=t.dataset.id;else p.m[+s[1]]=t.dataset.id;const old=slotDish(plan(),s).id;p.days=p.days||{};for(const k in p.days)p.days[k]=p.days[k].map(x=>x===old?t.dataset.id:x);p.cooked[s]=plan().cooked[s];if(p.cooked[s]){const pp=JSON.parse(JSON.stringify(plan()));if(cookOff(pp,s))ks.setDoc('stock/main',{s:S.stock})}delete p.cooked[s];savePlan(p);closeSheet();toast('Заменено, корзина обновлена')}
+ else if(a==='dotpl'){const i=+t.dataset.i;const tp=TEMPLATES[i];{const pp=JSON.parse(JSON.stringify(plan()));let n=0;for(const s in pp.cooked||{})n+=cookOff(pp,s);if(n)ks.setDoc('stock/main',{s:S.stock})}savePlan({tpl:i,m:[...tp.m],soup:tp.soup,bake:tp.bake,cooked:{},days:{}});closeSheet()}
+ else if(a==='cook'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;let n;if(p.cooked[s]){n=cookOff(p,s);if(n)toast('Продукты вернулись в «Дома»')}else{n=cookOn(p,s);if(n)toast('Списано из «Дома»: '+n+' '+plural(n,['продукт','продукта','продуктов']))}if(n)ks.setDoc('stock/main',{s:S.stock});savePlan(p)}
  else if(a==='unplace'){const p=JSON.parse(JSON.stringify(plan()));(p.days[t.dataset.i]||[]).splice(+t.dataset.j,1);savePlan(p)}
  else if(a==='autodays'||a==='autodaysf'){const p0=plan();if(a==='autodays'&&Object.values(p0.days||{}).flat().length){openSheet(()=>`<h2>Разложить по дням?</h2><p class="note">В днях уже стоят блюда — раскладка их заменит. Потом всё можно поправить руками, а сразу после — отменить.</p><div class="acts" style="margin-top:12px"><button class="btn pri" data-act="autodaysf">Разложить</button><button class="btn" data-act="close">Не надо</button></div>`);return}
   closeSheet();const p=JSON.parse(JSON.stringify(p0));const old=p.days||{};p.days=autoDays(p);savePlan(p);toast('Разложено по дням',()=>{const q=JSON.parse(JSON.stringify(plan()));q.days=old;savePlan(q)})}
@@ -1540,10 +1616,10 @@ document.addEventListener('click',ev=>{
  else if(a==='cookday'){const k=t.dataset.date;const ids=ppl().map(p=>p.id);const i=ids.indexOf(S.cook[k]);if(i+1<ids.length)S.cook[k]=ids[i+1];else delete S.cook[k];ks.setDoc('cookdays/main',{d:S.cook});render()}
  else if(a==='price')openSheet(priceView(t.dataset.id));
  else if(a==='psave'){const id=t.dataset.id,it=ALL[id];const num=x=>{const v=$(x);if(!v||v.value.trim()==='')return null;const n=parseFloat(String(v.value).replace(',','.'));return isFinite(n)&&n>=0?n:null};
-  const o={};const nm=$('#pnm')?$('#pnm').value.trim().slice(0,60):'';if(nm&&BASEN[id]&&nm!==BASEN[id])o.n=nm;const pc=num('#pc');if(it.pack){const pp=num('#pp');if(pp&&pp!==it.pack[0])o.pack=pp;if(pc!=null&&pc!==it.pack[1])o.price=pc}else if(pc!=null&&pc!==it.kg)o.price=pc;
+  const o={};const nm=$('#pnm')?$('#pnm').value.trim().slice(0,60):'';if(nm&&BASEN[id]&&nm!==BASEN[id])o.n=nm;const pc=num('#pc');if(it.tray){const pp=num('#pp');if(pp&&pp!==it.pack[0])o.pack=pp;if(pc!=null&&pc!==it.kg)o.price=pc}else if(it.pack){const pp=num('#pp');if(pp&&pp!==it.pack[0])o.pack=pp;if(pc!=null&&pc!==it.pack[1])o.price=pc}else if(pc!=null&&pc!==it.kg)o.price=pc;
   if(Object.keys(o).length)S.prices[id]=o;else delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});applyNames();
-  const q=num('#pq');S.shop.qty=S.shop.qty||{};if(q!=null&&q>0)S.shop.qty[id]=q;else delete S.shop.qty[id];saveShop();closeSheet();toast('Сохранено')}
- else if(a==='preset'){const id=t.dataset.id;delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});if(S.shop.qty)delete S.shop.qty[id];saveShop();closeSheet()}
+  const q=num('#pq');S.shop.qty=S.shop.qty||{};S.shop.qtt=S.shop.qtt||{};delete S.shop.qty[id];delete S.shop.qtt[id];if(q!=null&&q>0)(it.tray?S.shop.qtt:S.shop.qty)[id]=it.tray?Math.max(1,Math.round(q)):q;syncAdded(id);saveShop();closeSheet();toast('Сохранено')}
+ else if(a==='preset'){const id=t.dataset.id;delete S.prices[id];ks.setDoc('prices/main',{p:S.prices});if(S.shop.qty)delete S.shop.qty[id];if(S.shop.qtt)delete S.shop.qtt[id];syncAdded(id);saveShop();closeSheet()}
  else if(a==='cookv'){const k=t.dataset.date;const q=cookQ();if(q){if(S.cook[k]===q.id)delete S.cook[k];else{S.cook[k]=q.id;party()}}else{const ids=ppl().map(p=>p.id);const i=ids.indexOf(S.cook[k]);if(i+1<ids.length){S.cook[k]=ids[i+1];party()}else delete S.cook[k]}ks.setDoc('cookdays/main',{d:S.cook});render()}
  else if(a==='newrec'){RE={mode:t.dataset.mode||null,id:null,n:'',cat:S.rcat&&S.rcat!=='all'?S.rcat:'main',portions:t.dataset.mode?4:2,items:[],time:'',steps:'',man:null,cur:'',opts:[],tag:t.dataset.mode?'наши':'свой рецепт'};openSheet(recEditView)}
  else if(a==='editrec'){const d=D['u_'+t.dataset.id];if(d)editStart(d,'user')}
@@ -1567,7 +1643,11 @@ document.addEventListener('click',ev=>{
  else if(a==='addc'){const c=S.custom.find(x=>x.id===t.dataset.id);if(c)addLog(String(c.label),[c.kcal,c.p,c.f,c.c].map(x=>(+x||0)*S.mult),multTxt()||'своё')}
  else if(a==='del'){const id=t.dataset.id;const e=S.log.find(x=>x.id===id);ks.del('log',id);if(e)toast('Удалено: '+e.label,()=>{const c=Object.assign({},e);delete c.id;ks.add('log',c)})}
  else if(a==='rf'){S.rf=t.dataset.v;render()}
- else if(a==='got'){const id=t.dataset.id;if(S.shop.got[id])delete S.shop.got[id];else S.shop.got[id]=true;saveShop()}
+ else if(a==='got'){const id=t.dataset.id;S.shop.added=S.shop.added||{};let ch=false;
+  if(S.shop.got[id]){delete S.shop.got[id];const g=+S.shop.added[id]||0;if(g){addStock(id,-g);delete S.shop.added[id];ch=true}}
+  else{S.shop.got[id]=true;if(isStock(id)&&!isHome(id)){const L=shopLine(id,weekNeed(plan())[id]||0);const g=L.enough?0:(L.by.n||0)*priceInfo(id).pack;if(g>0){S.shop.added[id]=g;addStock(id,g);ch=true}}}
+  if(ch)ks.setDoc('stock/main',{s:S.stock});saveShop()}
+ else if(a==='stk'){const id=t.dataset.id;addStock(id,(+t.dataset.d)*priceInfo(id).pack);saveStock()}
  else if(a==='home'){const id=t.dataset.id;if(ALL[id]&&ALL[id].pantry){S.pantry=S.pantry||{};S.pantry[id]=!isHome(id);ks.setDoc('pantry/main',{h:S.pantry});render()}else{if(S.shop.home[id])delete S.shop.home[id];else S.shop.home[id]=true;saveShop()}}
  else if(a==='builder'){B={items:[],name:'',save:false};openSheet(builderView)}
  else if(a==='badd'){const id=$('#bp').value;if(!id||!ALL[id]){toast('Выберите продукт');return}const n=parseFloat(String($('#bn').value).replace(',','.'))||0,u=$('#bu').value;if(n<=0)return;
@@ -1643,6 +1723,9 @@ document.addEventListener('click',ev=>{
 document.addEventListener('change',ev=>{if(ev.target.id==='rpo'&&RE){return}if(ev.target.id==='rp'){RE.cur=ev.target.value;$('#rqu').innerHTML=qUnits(RE.cur);return}if(ev.target.id==='rc'){keepRE();refreshSheet();return}if(ev.target.id==='qp'){S.qp=ev.target.value;$('#qu').innerHTML=qUnits(S.qp);return}if(ev.target.id==='bp'){B.cur=ev.target.value;B.name=$('#bname').value;B.save=$('#bsave').checked;refreshSheet()}});
 document.addEventListener('input',ev=>{if(ev.target.id==='rpo'&&RE&&$('#rbatch')){const v=Math.max(1,Math.round(parseFloat(String(ev.target.value).replace(',','.'))||1));RE.portions=v;if(RE.cat!=='bake')$('#rbatch').innerHTML=RE.items.length?batchBox(RE.items,v,RE.cat):'';return}if(ev.target.id==='rq'){S.rq=ev.target.value;render()}});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&sheetOpen)closeSheet()});
+document.addEventListener('change',ev=>{const t=ev.target;
+ if(t.classList&&t.classList.contains('stk')){const id=t.dataset.id;const v=parseFloat(String(t.value).replace(',','.'));if(!isFinite(v)||v<0){render();return}S.stock=S.stock||{};if(v>0.5)S.stock[id]=Math.round(v);else delete S.stock[id];saveStock();toast('Запас обновлён')}
+ else if(t.id==='hadd'&&t.value){HSHOW.add(t.value);render()}});
 
 // ---------- запуск ----------
 subscribeAll();render();
