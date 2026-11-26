@@ -203,6 +203,7 @@ ol.steps{padding-left:22px;margin:8px 0}ol.steps li{margin-bottom:8px}
 .addrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
 .addrow input{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 12px;font:inherit}
 .swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent}.swatch[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
+.miss{outline:2px solid var(--tom);outline-offset:1px}
 .linkbtn{font-size:13px;font-weight:700;color:var(--meink);text-decoration:underline;text-underline-offset:3px;min-height:44px}
 label.chip{display:inline-flex;align-items:center;gap:6px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
@@ -728,7 +729,7 @@ let store=Local,unsubs=[],loadTimer=null,stale=false;
 function loaded(){if(loadTimer){clearTimeout(loadTimer);loadTimer=null;stale=false;banner()}}
 function subscribeAll(){
  unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
- unsubs.push(ks.watchDoc('settings/main',d=>{S.settings=normSettings(d);syncPeople();render()}));
+ unsubs.push(ks.watchDoc('settings/main',d=>{S.settings=normSettings(d);syncPeople();render();askGuest()}));
  unsubs.push(ks.watchQ('custom',null,null,a=>{S.custom=a;render()}));
  unsubs.push(ks.watchQ('recipes',null,null,a=>{S.urec=a;loadUserRecipes();render()}));
  unsubs.push(ks.watchDoc('variants/main',d=>{S.var=JSON.parse(JSON.stringify((d&&d.v)||{}));VAR=S.var;render()}));
@@ -794,7 +795,7 @@ function progCard(who){
  <div class="big">${fmt(eaten[0])} <small>из ${fmt(T[0])} ккал</small></div>
  <div class="bar${over?' over':''}"><i style="width:${pct(eaten[0],T[0])}%"></i></div>
  <div class="mac">${m}</div>
- ${hint?`<div class="hint">Сегодня съедено ${fmt(hint.today)} из ${fmt(hint.per)}&nbsp;ккал</div>`:''}</div>`;
+ ${incomplete(pp)?`<div class="hint">Профиль не заполнен — норма пока примерная. <button class="linkbtn" data-act="person" data-id="${esc(pp.id)}">Заполнить</button></div>`:''}${hint?`<div class="hint">Сегодня съедено ${fmt(hint.today)} из ${fmt(hint.per)}&nbsp;ккал</div>`:''}</div>`;
 }
 const SLOT=[['m0','Блюдо 1'],['m1','Блюдо 2'],['m2','Блюдо 3'],['m3','Блюдо 4'],['soup','Суп'],['bake','Выпечка']];
 const slotDish=(p,s)=>D[s==='soup'?p.soup:s==='bake'?p.bake:p.m[+s[1]]];
@@ -847,9 +848,18 @@ function renderPlanner(){
  <div class="pool" style="margin-bottom:12px">${pool}</div>
  <div class="cal">${cal}</div>
  ${planSummary(days)}
- ${Object.values(days).flat().length?'<div class="acts" style="margin-top:10px"><button class="btn sm" data-act="clearplan">Очистить план</button></div>':''}</section>`;
+ <div class="acts" style="margin-top:10px"><button class="btn sm" data-act="autodays">Разложить по дням</button>${Object.values(days).flat().length?'<button class="btn sm" data-act="clearplan">Очистить план</button>':''}</div></section>`;
 }
 
+// раскладка набора недели по дням: завтрак каждый день, обеды-ужины по 2 в день, выпечка — пн, ср, пт
+function autoDays(p){const days={};for(let i=0;i<7;i++)days[i]=[];
+ const ok=id=>id&&D[id]&&!D[id].hidden&&!D[id].gone;
+ const bf=[];for(const id in BF_WEEK)if(ok(id))for(let k=0;k<BF_WEEK[id];k++)bf.push(id);bf.slice(0,7).forEach((id,i)=>days[i].push(id));
+ const meals=[];const add=(id,n)=>{if(ok(id))for(let k=0;k<n;k++)meals.push(id)};
+ (p.m||[]).forEach((id,k)=>{add(id,(D[id]&&D[id].meals)||BATCH.H);if(k===0)add(p.soup,(D[p.soup]&&D[p.soup].meals)||BATCH.S)});
+ meals.forEach((id,k)=>days[Math.min(6,Math.floor(k*7/meals.length))].push(id));
+ if(ok(p.bake))[0,2,4].forEach(i=>days[i].push(p.bake));
+ return days}
 function dayTotals(list){const t={};ppl().forEach(p=>t[p.id]=[0,0,0,0]);
  for(const id of list){const d=D[id];if(!d)continue;for(const p of ppl())portion(d,p.id).forEach((x,i)=>t[p.id][i]+=x)}
  return t}
@@ -1139,7 +1149,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- <p class="note" style="margin-top:16px">Версия 1.03</p>
+ <p class="note" style="margin-top:16px">Версия 1.1</p>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
@@ -1186,12 +1196,13 @@ function openKitchen(kid){
  S.settings=null;S.custom=[];S.urec=[];S.var={};VAR={};S.prices={};S.cook={};S.mods={};S.weights=[];S.prods=[];S.pantry={};S.favs={};loadProducts();applyMods();loadUserRecipes();syncPeople();
  loadTimer=setTimeout(()=>{stale=true;banner()},10000);subscribeAll();render()}
 function saveKitchen(patch){const k=Object.assign({},S.kdoc||{},patch);delete k.id;S.kdoc=Object.assign({id:S.kid},k);render();return store.setDoc('kitchens/'+S.kid,k)}
-function newPersonFor(email,name,i){return {id:rid(),name:name||'Я',color:COLORS[(i||0)%COLORS.length],sex:'m',age:30,h:175,w:75,act:'light',goal:'keep',meals:{b:1,l:1,d:1},pct:null,tg:null,email:email||''}}
+const incomplete=p=>!p||!p.sex||!(+p.age>0)||!(+p.h>0)||!(+p.w>0);
+function newPersonFor(email,name,i){return {id:rid(),name:name||'',color:COLORS[(i||0)%COLORS.length],sex:'',age:null,h:null,w:null,act:'light',goal:'keep',meals:{b:1,l:1,d:1},pct:null,tg:null,email:email||''}}
 async function createKitchen(name,kid,extra,settings){
  kid=kid||rid()+rid();
  const doc=Object.assign({name,owners:[me()],members:[me()],created:Date.now()},extra||{});
  try{await DB.doc('kitchens/'+kid).set(doc);if(settings)await DB.doc('kitchens/'+kid+'/settings/main').set(JSON.parse(JSON.stringify(settings)))}
- catch(e){toast(e&&e.code==='permission-denied'?'Свою кухню можно завести по приглашению — попросите Вову или Кристину добавить ваш Gmail':'Не получилось создать кухню, попробуйте ещё раз');return null}
+ catch(e){toast(e&&e.code==='permission-denied'?'Свою кухню можно завести по приглашению — попросите того, кто дал вам ссылку, добавить ваш Gmail':'Не получилось создать кухню, попробуйте ещё раз');return null}
  S.kitchens=(S.kitchens||[]).filter(k=>k.id!==kid).concat([Object.assign({id:kid},doc)]);
  return kid}
 async function kCreate(){
@@ -1238,7 +1249,14 @@ function saveAccess(list){S.access=list;refreshSheet();return store.setDoc('acce
 
 // ---------- общая книга: отправка и одобрение ----------
 function recDoc(r){const x={tag:typeof r.tag==='string'?r.tag:null,per:r.per||0,meals:r.meals||null,opts:r.opts||[],n:r.n,cat:r.cat,portions:r.portions,items:r.items,time:r.time||'',steps:r.steps||[],man:r.man||null};return JSON.parse(JSON.stringify(x))}
-function shareRec(uid){const r=S.urec.find(x=>x.id===uid);if(!r)return;const rec=recDoc(r);const prods={};
+function recWarn(r){const w=[];const po=r.per?1:Math.max(1,+r.portions||1);const it=(r.items||[]).filter(x=>x&&ALL[x.i]).map(x=>[x.i,+x.g/po]);
+ if(!(r.steps||[]).filter(x=>String(x).trim()).length)w.push('нет шагов приготовления');
+ if(!String(r.time||'').trim()||r.time==='—')w.push('не указано время');
+ const k=it.length?macros(it)[0]:(r.man?+r.man[0]:0);if(k>1200)w.push('порция '+fmt(k)+' ккал — больше 1 200, проверьте граммы');
+ it.filter(([i,g])=>g>400).forEach(([i,g])=>w.push(ALL[i].n+': '+R(g)+' г на порцию — проверьте'));return w}
+const warnBox=w=>w.length?`<div class="hint" style="background:var(--tomsoft)"><b>Проверьте рецепт:</b><br>${w.map(esc).join('<br>')}</div>`:'';
+function shareRec(uid,force){const r=S.urec.find(x=>x.id===uid);if(!r)return;const rec=recDoc(r);
+ const w=recWarn(rec);if(w.length&&!force){openSheet(()=>`<h2>Отправить «${esc(rec.n)}» в общую книгу?</h2>${warnBox(w)}<p class="note">Можно отправить и так — модератор увидит эти замечания.</p><div class="acts" style="margin-top:12px"><button class="btn pri" data-act="sharef" data-id="${esc(uid)}">Всё равно отправить</button><button class="btn" data-act="editrec" data-id="${esc(uid)}">Исправить</button></div>`);return}const prods={};
  (rec.items||[]).forEach(x=>{if(String(x.i).startsWith('p_')){const p=(S.prods||[]).find(y=>'p_'+y.id===x.i);if(p)prods[x.i]=prodDoc(p)}});
  store.add('pending',{type:'recipe',kid:S.kid,kname:(S.kdoc&&S.kdoc.name)||'',by:me(),at:Date.now(),rec,prods}).then(()=>{closeSheet();toast('Отправлено на одобрение. Когда примут — рецепт появится у всех')})}
 function pendingView(){const list=S.pending||[];
@@ -1250,6 +1268,7 @@ function pendingPreview(p){if(p.type==='product'){const x=p.prod||{};return `<h2
  return `<h2>${esc(r.n)}</h2><p class="note">${esc(p.kname)} · ${esc(p.by)} · ${CATN[r.cat]||'блюдо'} · ${R(+r.portions||1)} порц.</p>
  ${items.length?`<p>Одна порция ≈ <b>${fmt(per[0])} ккал</b> · Б ${R(per[1])} · Ж ${R(per[2])} · У ${R(per[3])}</p><div class="ing">${items.map(x=>{const v=ALL[x.i]?vibe(x.i,x.g):{eye:R(x.g)+' г',gr:'свой продукт'};return `<span>${esc(nm(x.i))}</span><span>${v.eye} · ${v.gr}</span>`}).join('')}</div>`:(r.man?`<p>Порция: ${R(r.man[0])} ккал (вписано вручную)</p>`:'')}
  ${(r.steps||[]).length?`<ol class="steps">${r.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}
+ ${warnBox(recWarn(r))}
  <div class="acts" style="margin-top:12px"><button class="btn pri" data-act="pok" data-id="${esc(p.id)}">Принять в общую книгу</button><button class="btn" data-act="pno" data-id="${esc(p.id)}">Отклонить</button></div>`}
 async function approve(id){const p=(S.pending||[]).find(x=>x.id===id);if(!p)return;if(sheetRender&&sheetRender!==settingsView&&sheetRender!==modView)closeSheet();
  if(p.type==='product'){await store.setDoc('sharedProducts/'+id,Object.assign(prodDoc(p.prod||{}),{by:p.by}));store.del('pending',id);toast('Продукт теперь в общем списке');return}
@@ -1289,18 +1308,18 @@ function personView(){const p=PE;
  const ws=(S.weights||[]).filter(w=>w.pid===p.id).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.ts||0)-(b.ts||0));
  const isNew=!(S.settings&&(S.settings.people||[]).some(x=>x.id===p.id));
  const opt=(arr,v)=>arr.map(([k,l])=>`<option value="${k}"${v===k?' selected':''}>${l}</option>`).join('');
- return `<h2>${isNew?'Новый человек':esc(p.name)}</h2>${p.first?'<p class="note">Кухня создана! Заполните свой профиль — по нему посчитаются норма и порции. Потом можно добавить ещё людей.</p>':''}
+ return `<h2>${p.guest?'О себе':isNew?'Новый человек':esc(p.name)}</h2>${p.first?'<p class="note">Кухня создана! Заполните свой профиль — по нему посчитаются норма и порции. Потом можно добавить ещё людей.</p>':''}${p.guest?`<p class="note">Вы в кухне «${esc(kTitle())}». Заполните о себе — посчитаем вашу норму и порции. Если вы только смотрите, просто закройте это окно.</p>`:''}
  <div class="field">Имя<input id="pn" value="${esc(p.name)}" maxlength="30"></div>
  <div class="note" style="margin:2px 0 6px">Цвет</div><div class="chips" style="margin-bottom:10px">${COLORS.map(c=>`<button class="swatch" data-act="pcol" data-c="${c}" style="background:${c}" aria-pressed="${p.color===c}" aria-label="Цвет ${c}"></button>`).join('')}</div>
- <div class="row2"><div class="field">Пол<select id="psx">${opt([['m','мужской'],['f','женский']],p.sex)}</select></div><div class="field">Возраст<input id="page" type="number" inputmode="numeric" value="${p.age??''}"></div></div>
+ <div class="row2"><div class="field">Пол<select id="psx">${p.sex?'':'<option value="" selected disabled>— выберите —</option>'}${opt([['m','мужской'],['f','женский']],p.sex)}</select></div><div class="field">Возраст<input id="page" type="number" inputmode="numeric" value="${p.age??''}"></div></div>
  <div class="row2"><div class="field">Рост, см<input id="ph" type="number" inputmode="decimal" value="${p.h??''}"></div><div class="field">Вес, кг<input id="pw" type="number" inputmode="decimal" value="${p.w??''}"></div></div>
  <div class="field">Активность<select id="pact">${opt(ACT.map(a=>[a[0],a[1]]),p.act)}</select></div>
  <div class="field">Цель<select id="pgoal">${opt(GOAL.map(a=>[a[0],a[1]]),p.goal)}</select></div>
  <div class="note" style="margin:6px 0">Ест дома</div><div class="chips" style="margin-bottom:10px">${[['pmb','b','завтрак'],['pml','l','обед'],['pmd','d','ужин']].map(([id,k,l])=>`<label class="chip"><input type="checkbox" id="${id}" ${(p.meals||{b:1,l:1,d:1})[k]?'checked':''}> ${l}</label>`).join('')}</div>
- <div class="eye"><b>Норма по формуле:</b> ${fmt(auto[0])} ккал · Б ${auto[1]} · Ж ${auto[2]} · У ${auto[3]} г в день${(+p.age||30)<16?'<br>Для детей формула неточная — лучше вписать норму от врача ниже.':''}</div>
+ ${incomplete(p)?'<div class="eye">Норма посчитается, когда заполните пол, возраст, рост и вес.</div>':`<div class="eye"><b>Норма по формуле:</b> ${fmt(auto[0])} ккал · Б ${auto[1]} · Ж ${auto[2]} · У ${auto[3]} г в день${(+p.age||30)<16?'<br>Для детей формула неточная — лучше вписать норму от врача ниже.':''}</div>`}
  <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ptgon" ${tgOn?'checked':''} style="width:22px;height:22px"> Своя норма вместо формулы</label>
  ${tgOn?`<div class="row4">${['Ккал','Б','Ж','У'].map((l,i)=>`<div class="field">${l}<input id="ptg${i}" type="number" inputmode="decimal" value="${R(tgv[i]||0)}"></div>`).join('')}</div>`:''}
- <div class="field">Порция от стандартной, % <span class="note">(пусто — сама по норме: ${R(autoPct*100)}%)</span><input id="ppct" type="number" inputmode="decimal" value="${p.pct??''}" placeholder="${R(autoPct*100)}"></div>
+ <div class="field">Порция от стандартной, % <span class="note">(пусто — ${incomplete(p)?'посчитается по норме':'сама по норме: '+R(autoPct*100)+'%'})</span><input id="ppct" type="number" inputmode="decimal" value="${p.pct??''}" placeholder="${incomplete(p)?'':R(autoPct*100)}"></div>
  <div class="field">Gmail <span class="note">(необязательно — чтобы человек сам заходил со своего телефона)</span><input id="pem" type="email" inputmode="email" value="${esc(p.email||'')}" placeholder="name@gmail.com"></div>
  <button class="btn pri" data-act="persave" style="width:100%;justify-content:center">${isNew?'Добавить':'Сохранить'}</button>
  ${isNew?'':`<h3 style="margin:18px 0 6px">Вес</h3><div class="addrow"><input id="wnew" type="number" inputmode="decimal" step="0.1" placeholder="Сегодня, кг" value=""><button class="btn" data-act="wadd">Записать</button></div>
@@ -1312,7 +1331,11 @@ function wChart(ws){if(ws.length<2)return ws.length?'<p class="note">Запиш�
  const pts=ws.map((w,i)=>`${X(xs[i]).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(' ');const d=ys[ys.length-1]-ys[0];
  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin:8px 0" role="img" aria-label="График веса"><polyline points="${pts}" fill="none" stroke="${esc(PE.color||'#2f7d5b')}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${ws.map((w,i)=>`<circle cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="4" fill="${esc(PE.color||'#2f7d5b')}"/>`).join('')}
  <text x="${pad}" y="14" font-size="12" fill="currentColor">${String(ys[0]).replace('.',',')} → ${String(ys[ys.length-1]).replace('.',',')} кг (${d>0?'+':''}${String(Math.round(d*10)/10).replace('.',',')})</text></svg>`}
-function savePerson(){keepPE();const p=PE;if(!p.name){$('#pn').focus();toast('Впишите имя');return}
+function askGuest(){if(!S.fb||!S.user||!S.settings||!S.kid||S.guestAsked===S.kid||sheetRender)return;const em=String(S.user).toLowerCase();
+ if((S.settings.people||[]).some(p=>String(p.email||'').toLowerCase()===em))return;S.guestAsked=S.kid;PE=newPersonFor(S.user,S.uname||'',(S.settings.people||[]).length);PE.guest=true;openSheet(personView)}
+function savePerson(){keepPE();const p=PE;document.querySelectorAll('.miss').forEach(e=>e.classList.remove('miss'));
+ const miss=[['#pn',!p.name,'имя'],['#psx',!p.sex,'пол'],['#page',!(+p.age>0),'возраст'],['#ph',!(+p.h>0),'рост'],['#pw',!(+p.w>0),'вес']].filter(x=>x[1]);
+ if(miss.length){miss.forEach(([sel])=>{const e=$(sel);if(e)e.classList.add('miss')});const f=$(miss[0][0]);if(f)f.focus();toast('Заполните: '+miss.map(x=>x[2]).join(', '));return}
  if(p.email&&!EMAIL_RE.test(p.email)){$('#pem').focus();toast('Почта выглядит неправильно');return}
  const out={id:p.id,name:p.name,color:p.color,sex:p.sex,age:p.age,h:p.h,w:p.w,act:p.act,goal:p.goal,meals:p.meals||{b:1,l:1,d:1},pct:+p.pct>0?+p.pct:null,tg:p.tgOn?p.tgv:(p.tgOn===undefined?p.tg||null:null),email:p.email||''};
  const st=Object.assign({people:[]},S.settings||{});const list=(st.people||[]).slice();const i=list.findIndex(x=>x.id===p.id);if(i>=0)list[i]=out;else list.push(out);st.people=list;
@@ -1491,6 +1514,8 @@ document.addEventListener('click',ev=>{
  else if(a==='dotpl'){const i=+t.dataset.i;const tp=TEMPLATES[i];savePlan({tpl:i,m:[...tp.m],soup:tp.soup,bake:tp.bake,cooked:{},days:{}});closeSheet()}
  else if(a==='cook'){const p=JSON.parse(JSON.stringify(plan()));const s=t.dataset.s;if(p.cooked[s])delete p.cooked[s];else p.cooked[s]=Date.now();savePlan(p)}
  else if(a==='unplace'){const p=JSON.parse(JSON.stringify(plan()));(p.days[t.dataset.i]||[]).splice(+t.dataset.j,1);savePlan(p)}
+ else if(a==='autodays'||a==='autodaysf'){const p0=plan();if(a==='autodays'&&Object.values(p0.days||{}).flat().length){openSheet(()=>`<h2>Разложить по дням?</h2><p class="note">В днях уже стоят блюда — раскладка их заменит. Потом всё можно поправить руками, а сразу после — отменить.</p><div class="acts" style="margin-top:12px"><button class="btn pri" data-act="autodaysf">Разложить</button><button class="btn" data-act="close">Не надо</button></div>`);return}
+  closeSheet();const p=JSON.parse(JSON.stringify(p0));const old=p.days||{};p.days=autoDays(p);savePlan(p);toast('Разложено по дням',()=>{const q=JSON.parse(JSON.stringify(plan()));q.days=old;savePlan(q)})}
  else if(a==='clearplan'){const p=JSON.parse(JSON.stringify(plan()));const old=p.days;p.days={};savePlan(p);toast('План очищен',()=>{const q=JSON.parse(JSON.stringify(plan()));q.days=old;savePlan(q)})}
  else if(a==='qadd'){const id=$('#qp').value;if(!id||!ALL[id]){$('#qp').focus();toast('Выберите продукт');return}const n=parseFloat(String($('#qn').value).replace(',','.'))||0;if(n<=0){$('#qn').focus();return}const am=amountOf(id,n,$('#qu').value);addLog(ALL[id].n,macros([[id,am.g]]),am.txt)}
  else if(a==='exadd'){const n=$('#exn').value.trim().slice(0,80);if(!n){$('#exn').focus();return}S.shop.extra=S.shop.extra||[];S.shop.extra.push({n,q:$('#exq').value.trim().slice(0,40),price:parseFloat(String($('#exp').value).replace(',','.'))||0,got:false});saveShop()}
@@ -1567,6 +1592,7 @@ document.addEventListener('click',ev=>{
  else if(a==='modrec'){modStart(t.dataset.id)}
  else if(a==='unmod'){ks.del('mods',t.dataset.id);closeSheet();toast('Блюдо снова как в общей книге')}
  else if(a==='share'){shareRec(t.dataset.id)}
+ else if(a==='sharef'){shareRec(t.dataset.id,true)}
  else if(a==='unshare'){store.del('shared',t.dataset.id);closeSheet();toast('Убрано из общей книги')}
  else if(a==='pok'){approve(t.dataset.id)}
  else if(a==='pno'){store.del('pending',t.dataset.id);toast('Отклонено')}
