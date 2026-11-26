@@ -701,7 +701,9 @@ const ovenNote=d=>{const e=equip();return needsHeat(d)&&e.oven&&!(e.air&&!e.oven
 const noHeat=d=>{const e=equip();return needsHeat(d)&&!e.air&&!e.oven};
 const cookQ=()=>{const s=S.settings||{};return s.cookQuick&&ppl().some(p=>p.id===s.cookQuick)?{id:s.cookQuick,label:s.cookLabel||('Готовит '+P(s.cookQuick).name)}:null};
 const defPlan=wk=>{const t=TEMPLATES[tplFor(wk)];return {tpl:tplFor(wk),m:[...t.m],soup:t.soup,bake:t.bake,cooked:{},days:{}}};
-const plan=()=>S.plan||defPlan(S.wk);
+// блюдо из плана удалили (свой или общий рецепт) — подставляем пустую заглушку, чтобы ничего не ломалось
+const GONE=id=>D[id]||(D[id]={id,cat:'main',src:'gone',n:'Удалённое блюдо',time:'—',H:[],S:[],B:[],pcs:1,steps:[],man:[0,0,0,0],tag:'удалено',gone:true});
+const plan=()=>{const p=S.plan||defPlan(S.wk);[...(p.m||[]),p.soup,p.bake,...Object.values(p.days||{}).flat()].forEach(id=>{if(id&&!D[id])GONE(id)});return p};
 
 // ---------- хранилище: общая база или этот телефон ----------
 const chains={};
@@ -810,6 +812,7 @@ function kbLine(d){
 function renderWeek(){
  const p=plan();
  const cards=SLOT.map(([s,l])=>{const d=slotDish(p,s);const c=!!p.cooked[s];
+  if(d.gone)return `<div class="card dish"><div class="tags"><span class="tag">${l}</span><span class="tag tt">удалено</span></div><h3>Блюдо удалено</h3><p class="note" style="margin:0">Этот рецепт удалили. Он не считается в калориях и покупках — замените его другим.</p><div class="acts"><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button></div></div>`;
   return `<div class="card dish${c?' cooked':''}"><div class="tags"><span class="tag">${l}</span>${srcTag(d)}<span class="tag">${esc(d.time)}</span></div>
   <h3>${esc(dname(d))}</h3><div class="kb">${kbLine(d)}</div>
   <div class="acts"><button class="btn sm" data-act="recipe" data-id="${d.id}">Рецепт</button><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button>
@@ -1136,7 +1139,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- <p class="note" style="margin-top:16px">Версия 1.02</p>
+ <p class="note" style="margin-top:16px">Версия 1.03</p>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
