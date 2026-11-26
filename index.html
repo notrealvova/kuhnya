@@ -204,6 +204,7 @@ ol.steps{padding-left:22px;margin:8px 0}ol.steps li{margin-bottom:8px}
 .addrow input{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 12px;font:inherit}
 .swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent}.swatch[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
 .miss{outline:2px solid var(--tom);outline-offset:1px}
+.shg{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.shg h3{margin:0}.shg .mv{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);font-size:18px;color:var(--mute)}.shg .mv[disabled]{opacity:.3}
 .linkbtn{font-size:13px;font-weight:700;color:var(--meink);text-decoration:underline;text-underline-offset:3px;min-height:44px}
 label.chip{display:inline-flex;align-items:center;gap:6px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
@@ -378,6 +379,12 @@ const EXTRA = {
 };
 for(const k in EXTRA){EXTRA[k].g=EXTRA[k].g||'other';if(EXTRA[k].kg==null&&!EXTRA[k].pack)EXTRA[k].kg=0}
 const GROUPS = {meat:'Мясо, рыба, карбонад',dairy:'Яйца и молочное',bread:'Хлеб и тесто',veg:'Овощи и фрукты',groc:'Крупы, соусы, бакалея',other:'Прочее (из своих рецептов)',pantry:'Запасы: соль, сахар, масло, специи'};
+// отделы магазина для списка покупок (порядок по умолчанию — как обычно идёшь по магазину)
+const SHOPG={veg:'Овощи и фрукты',bread:'Хлеб',meat:'Мясо и рыба',dairy:'Молочное и яйца',cheese:'Сыры',grain:'Крупы и макароны',canned:'Консервы и соусы',groc:'Бакалея и сладкое',frozen:'Заморозка',pantry:'Запасы: соль, сахар, масло, специи',other:'Прочее (свои продукты)'};
+const SHOPG_OF={berries:'frozen',mix:'frozen',broc:'frozen',pollock:'frozen',shrimp:'frozen',cheese:'cheese',procheese:'cheese',creamcheese:'cheese',mozz:'cheese',feta:'cheese',
+ pasta:'grain',rice:'grain',buck:'grain',beans:'grain',manka:'grain',flour:'grain',oats:'grain',bulgur:'grain',perl:'grain',muesli:'grain',
+ tpaste:'canned',hot:'canned',teriyaki:'canned',mustard:'canned',soy:'canned',tuna:'canned',corn:'canned',tomsauce:'canned',chili:'canned',mayo:'canned',chick:'canned',peas:'canned',ketch:'canned'};
+
 
 // ===== Блюда =====
 // H — порция Вовы, K — порция Кристины (её единственный приём за день, поэтому больше)
@@ -815,7 +822,7 @@ function renderWeek(){
  const cards=SLOT.map(([s,l])=>{const d=slotDish(p,s);const c=!!p.cooked[s];
   if(d.gone)return `<div class="card dish"><div class="tags"><span class="tag">${l}</span><span class="tag tt">удалено</span></div><h3>Блюдо удалено</h3><p class="note" style="margin:0">Этот рецепт удалили. Он не считается в калориях и покупках — замените его другим.</p><div class="acts"><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button></div></div>`;
   return `<div class="card dish${c?' cooked':''}"><div class="tags"><span class="tag">${l}</span>${srcTag(d)}<span class="tag">${esc(d.time)}</span></div>
-  <h3>${esc(dname(d))}</h3><div class="kb">${kbLine(d)}</div>
+  <h3>${esc(dname(d))}</h3>${noteOf(d.id)?`<p class="note" style="margin:0"><b>Заметка:</b> ${esc(noteOf(d.id))}</p>`:''}<div class="kb">${kbLine(d)}</div>
   <div class="acts"><button class="btn sm" data-act="recipe" data-id="${d.id}">Рецепт</button><button class="btn sm" data-act="swap" data-s="${s}">Заменить</button>
   <button class="btn sm ${c?'done':''}" data-act="cook" data-s="${s}" aria-pressed="${c}">${c?'✓ Приготовлено':'Приготовила'}</button></div></div>`}).join('');
  const done=SLOT.filter(([s])=>p.cooked[s]).length;
@@ -1055,14 +1062,18 @@ function priceView(id){return ()=>{
  ${pi.own||q!=null?`<button class="btn" data-act="preset" data-id="${id}" style="width:100%;justify-content:center;margin-top:8px">Вернуть примерную цену и авто-количество</button>`:''}`}}
 function isHome(id){const it=ALL[id];if(it&&it.pantry){const v=(S.pantry||{})[id];return v===undefined?true:!!v}return !!S.shop.home[id]}
 function shopTotal(p){const need=weekNeed(p);let t=0;for(const id in need){if(isHome(id))continue;t+=buyApp(id,need[id]).cost}return t}
+const shopG=id=>SHOPG_OF[id]||(SHOPG[ALL[id]&&ALL[id].g]?ALL[id].g:'other');
+const shopOrder=()=>{const o=((S.settings&&S.settings.shopOrder)||[]).filter(g=>SHOPG[g]);return o.concat(Object.keys(SHOPG).filter(g=>!o.includes(g)))};
+function moveShopG(g,dir){const o=shopOrder();const i=o.indexOf(g),j=i+dir;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];const st=Object.assign({people:[]},S.settings||{});st.shopOrder=o;S.settings=st;ks.setDoc('settings/main',st);render()}
 function renderShop(){
  const p=plan(),need=weekNeed(p),b=cfg().budget;
  const rows={};let tot=0,left=0;
  for(const id in need){const it=ALL[id];const by=buyApp(id,need[id]);const v=vibe(id,need[id]);
-  (rows[it.g]=rows[it.g]||[]).push({id,it,by,v});
+  (rows[shopG(id)]=rows[shopG(id)]||[]).push({id,it,by,v});
   if(!isHome(id)){tot+=by.cost;if(!S.shop.got[id])left+=by.cost}}
  const ex=S.shop.extra||[];for(const x of ex){tot+=+x.price||0;if(!x.got)left+=+x.price||0}
- const groups=Object.keys(GROUPS).filter(g=>rows[g]).map(g=>`<div class="card" style="margin-bottom:10px"><h3 style="margin-bottom:6px">${GROUPS[g]}</h3>${rows[g].map(({id,it,by,v})=>{
+ const og=shopOrder().filter(g=>rows[g]);for(const g in rows)rows[g].sort((a,b)=>(!!(S.shop.got[a.id]||isHome(a.id)))-(!!(S.shop.got[b.id]||isHome(b.id))));
+ const groups=og.map((g,gi)=>`<div class="card" style="margin-bottom:10px"><div class="shg"><h3>${SHOPG[g]}</h3><span><button class="mv" data-act="shopmv" data-g="${g}" data-d="-1" aria-label="Отдел выше"${gi?'':' disabled'}>↑</button><button class="mv" data-act="shopmv" data-g="${g}" data-d="1" aria-label="Отдел ниже"${gi<og.length-1?'':' disabled'}>↓</button></span></div>${rows[g].map(({id,it,by,v})=>{
   const got=!!S.shop.got[id],home=isHome(id);
   return `<div class="srow${got?' got':''}${home?' home':''}"><button class="cb" data-act="got" data-id="${id}" aria-pressed="${got}" aria-label="Куплено: ${esc(it.n)}">✓</button><div class="n"><b>${esc(it.n)}</b><span>${v.eye} · ${it.pack?esc(by.txt):v.gr+(by.q?' → берём '+esc(by.txt):'')}</span></div><div class="p">${home?'—':`<button class="pr" data-act="price" data-id="${id}">${by.cost||by.own?(by.own?'':'≈ ')+fmt(by.cost)+' ₽':'цена?'} ✎</button>`}${by.own||by.q?`<span class="own">${by.own?'ваша цена':''}${by.own&&by.q?' · ':''}${by.q?'своё кол-во':''}</span>`:''}<button data-act="home" data-id="${id}">${home?'есть дома ✓':'есть дома?'}</button></div></div>`}).join('')}</div>`).join('');
  const over=tot>b;
@@ -1091,6 +1102,8 @@ let sheetOpen=false,sheetRender=null,sheetLive=false;
 function openSheet(fn,live){sheetRender=fn;sheetLive=!!live;sheetOpen=true;$('#pane').innerHTML='<button class="close" data-act="close" aria-label="Закрыть">×</button>'+fn();$('#sheet').classList.add('open');$('#pane').scrollTop=0}
 function closeSheet(){sheetOpen=false;sheetRender=null;$('#sheet').classList.remove('open')}
 function plate(items){return items.filter(([id])=>!['oil','garlic','hot','mustard','honey','soy','flour','manka','sugar','tpaste','smet','teriyaki','butter'].includes(id)).map(([id,g])=>vibe(id,g).eye+(ALL[id].sh?' '+ALL[id].sh:id.startsWith('x_')?' — '+ALL[id].n.toLowerCase():'')).join(', ')}
+const noteOf=id=>((S.settings&&S.settings.notes)||{})[id]||'';
+function saveNote(id,text){const st=Object.assign({people:[]},S.settings||{});const n=Object.assign({},st.notes||{});text=String(text||'').trim().slice(0,300);if(text)n[id]=text;else delete n[id];st.notes=n;S.settings=st;ks.setDoc('settings/main',st);render();if(sheetOpen)refreshSheet();toast(text?'Заметка сохранена':'Заметка удалена')}
 function recipeView(id){return ()=>{
  const d=D[id];let kb='';const PP=ppl();
  const tbl=(h,rows)=>`<table><tr><th>${h}</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr>${rows.map(([nm,k])=>`<tr><td>${esc(nm)}</td><td>${R(k[0])}</td><td>${R(k[1])}</td><td>${R(k[2])}</td><td>${R(k[3])}</td></tr>`).join('')}</table>`;
@@ -1103,9 +1116,10 @@ function recipeView(id){return ()=>{
  const ch=choice(d);
  const optsH=(d.opts||[]).map((o,k)=>`<div style="margin:12px 0 0"><div class="note" style="margin-bottom:6px">${esc(o.t)}</div><div class="chips">${o.c.map((c,i)=>`<button class="chip" data-act="opt" data-id="${d.id}" data-k="${k}" data-i="${i}" aria-pressed="${ch[k]===i}">${esc(c[0])}</button>`).join('')}</div></div>`).join('');
  const pm=parse(S.wk);const planH=`<div style="margin:14px 0 0"><div class="note" style="margin-bottom:6px">Поставить в план этой недели</div><div class="chips">${DOW.map((x,i)=>`<button class="chip day" data-act="toplan" data-id="${d.id}" data-i="${i}">${x}<small>${addDays(pm,i).getDate()}</small></button>`).join('')}</div></div>`;
- return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px"><h2 style="flex:1;margin:0">${esc(d.n)}</h2>${favBtn(d.id)}</div>${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
+ return `<div class="tags" style="display:flex;gap:6px;flex-wrap:wrap">${srcTag(d)}${d.time&&d.time!=='—'?`<span class="tag">${esc(d.time)}</span>`:''}</div><div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px"><h2 style="flex:1;margin:0">${esc(d.n)}</h2>${favBtn(d.id)}</div>${noteOf(d.id)?`<div class="hint"><b>Заметка:</b> ${esc(noteOf(d.id))}</div>`:''}${optsH}${optsH?'<div style="height:12px"></div>':''}${kb}${planH}
  ${ing?`<h3 style="margin:18px 0 8px">${head}</h3><div class="ing">${ing}</div>`:''}<p class="note">Соль, перец, паприка, уксус — по вкусу.</p>
- ${noHeat(d)?'<div class="eye" style="margin-top:12px"><b>Нужна духовка или аэрогриль</b> — отметьте в настройках, что есть на кухне.</div>':''}${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(devText(s))}</li>`).join('')}</ol>${ovenNote(d)}`:''}${d.tip?`<div class="eye">${esc(devText(d.tip))}</div>`:''}${recActs(d)}`}}
+ ${noHeat(d)?'<div class="eye" style="margin-top:12px"><b>Нужна духовка или аэрогриль</b> — отметьте в настройках, что есть на кухне.</div>':''}${d.steps.length?`<h3 style="margin:18px 0 6px">Как готовить</h3><ol class="steps">${d.steps.map(s=>`<li>${esc(devText(s))}</li>`).join('')}</ol>${ovenNote(d)}`:''}${d.tip?`<div class="eye">${esc(devText(d.tip))}</div>`:''}
+ <h3 style="margin:18px 0 6px">Заметка кухни</h3><p class="note" style="margin:0 0 6px">Видят все на этой кухне. Например: «Вове без лука», «специй поменьше».</p><textarea id="rnote" maxlength="300" style="width:100%;min-height:64px" placeholder="Ваша заметка к этому блюду">${esc(noteOf(d.id))}</textarea><div class="acts" style="margin-top:8px"><button class="btn" data-act="notesave" data-id="${d.id}">Сохранить заметку</button>${noteOf(d.id)?`<button class="btn" data-act="notedel" data-id="${d.id}">Удалить</button>`:''}</div>${recActs(d)}`}}
 function swapView(s){return ()=>{
  const p=plan(),cur=slotDish(p,s);const k0=portion(cur)[0];
  const used=new Set([...p.m,p.soup,p.bake]);
@@ -1149,7 +1163,7 @@ function settingsView(){const c=cfg();const k=S.kdoc||{};const own=isKOwner();co
  ${isAdmin()?rolesView()+accessView():''}
  <h3 style="margin:18px 0 8px">Перенос данных</h3><p class="note">Планы, покупки, дневник, свои рецепты, цены, календарь и вес этой кухни — одним файлом.</p>
  <div class="row2"><button class="btn" data-act="export" style="justify-content:center">Выгрузить всё</button><button class="btn" data-act="importv" style="justify-content:center">Загрузить</button></div>
- <p class="note" style="margin-top:16px">Версия 1.11</p>
+ <p class="note" style="margin-top:16px">Версия 1.2</p>
  ${S.fb?`<p class="note" style="margin-top:16px">Вы вошли как ${esc(S.user||'')}.</p><button class="btn" data-act="logout" style="width:100%;justify-content:center">Выйти</button>`:''}`}
 
 
@@ -1592,6 +1606,9 @@ document.addEventListener('click',ev=>{
  else if(a==='modrec'){modStart(t.dataset.id)}
  else if(a==='unmod'){ks.del('mods',t.dataset.id);closeSheet();toast('Блюдо снова как в общей книге')}
  else if(a==='share'){shareRec(t.dataset.id)}
+ else if(a==='shopmv'){moveShopG(t.dataset.g,+t.dataset.d)}
+ else if(a==='notesave'){saveNote(t.dataset.id,$('#rnote')?$('#rnote').value:'')}
+ else if(a==='notedel'){saveNote(t.dataset.id,'')}
  else if(a==='sharef'){shareRec(t.dataset.id,true)}
  else if(a==='unshare'){store.del('shared',t.dataset.id);closeSheet();toast('Убрано из общей книги')}
  else if(a==='pok'){approve(t.dataset.id)}
